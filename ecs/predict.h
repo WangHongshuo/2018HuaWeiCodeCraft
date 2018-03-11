@@ -15,29 +15,44 @@ using namespace std;
 
 struct date
 {
-    int Y;
-    int M;
-    int D;
+    int Y = 0;
+    int M = 0;
+    int D = 0;
     date() {}
 };
 
 struct phyServerInfo
 {
-    int CPUCount;
-    int MEMCount;
-    int flavorCount;
-    int flavorType[15];
-    int optimizedTarget;
+    int CPUCount = 0;
+    int MEMCount = 0;
+    int flavorTypeCount = 0;
+    // 为方便，索引从1开始，0为无效数据
+    int flavorType[16] = {0};
+    int optimizedTarget = 0;
     date predictStartTime;
     date predictEndTime;
     phyServerInfo() {}
 };
 
+struct trainData
+{
+    date time;
+    // 为方便，索引从1开始，0为无效数据
+    int flavorCount[16] = {0};
+    trainData() {}
+};
+
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
+void loadTrainData(vector<trainData> &target, int daysCount, char * data[MAX_DATA_NUM], int dataLineCount, phyServerInfo &serverInfo);
 char * charToNum(char * str, int& target);
 void numToDate(int num, date &target);
 char * jumpToNextCharBlock(char * str);
-
+int getTrainDataInterval(char * data[MAX_DATA_NUM], int dataNum);
+int getIntervalBetweenTwoDate(const date &from, const date &to);
+int getDaysCountInMonth(int Year, int Month);
+int getDaysCountInYear(int Year);
+bool isFlavorInPhyServerInfo(phyServerInfo &info, int flavorTpye);
+bool operator !=(date &a, date &b);
 
 #endif
