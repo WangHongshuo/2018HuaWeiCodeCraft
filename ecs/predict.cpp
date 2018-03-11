@@ -25,7 +25,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // 在载入数据时，只统计serverInfo.flavorType[index]中存在的flavor类型
     // 查看某个index（日期）的某个flavor使用数量：
     // trainDataGroup[index].flavorCount[serverInfo.flavorType[typeIndex]]
-    // 输入用例（输出全部可输出数据）：
+    // 输出用例（输出全部可输出数据）：
     for(int i=1;i<=trainDataDayCount;i++)
     {
         cout << trainDataGroup[i].time.Y << " " << trainDataGroup[i].time.M << " " << trainDataGroup[i].time.D << " ";
@@ -33,7 +33,23 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
             cout << trainDataGroup[i].flavorCount[serverInfo.flavorType[j]] << " ";
         cout << endl;
     }
-
+    cout << "=================" << endl;
+    // 或者转换为int数组，int[i][0]为flavor类型
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    int trainDataArray[serverInfo.flavorTypeCount][trainDataDayCount+1];
+    for(int i=0;i<serverInfo.flavorTypeCount;i++)
+    {
+        trainDataArray[i][0] = serverInfo.flavorType[i+1];
+        for(int j=1;j<=trainDataDayCount;j++)
+            trainDataArray[i][j] = trainDataGroup[j].flavorCount[serverInfo.flavorType[i+1]];
+    }
+    // 输出用例（输出全部可输出数据）：
+    for(int i=0;i<serverInfo.flavorTypeCount;i++)
+    {
+        for(int j=0;j<=trainDataDayCount;j++)
+            cout << trainDataArray[i][j] << " ";
+        cout << endl;
+    }
 
     // ======================================================================
     // TODO

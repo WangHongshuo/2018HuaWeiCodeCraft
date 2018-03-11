@@ -45,7 +45,7 @@ struct trainData
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
 void loadTrainData(vector<trainData> &target, int daysCount, char * data[MAX_DATA_NUM], int dataLineCount, phyServerInfo &serverInfo);
-char * charToNum(char * str, int& target);
+char * charToNum(char * str, int &target);
 void numToDate(int num, date &target);
 char * jumpToNextCharBlock(char * str);
 int getTrainDataInterval(char * data[MAX_DATA_NUM], int dataNum);
