@@ -1,3 +1,4 @@
 /ecs/CMakeLists.txt.user
 /bin
 /build-ecs-*
+*.autosave
