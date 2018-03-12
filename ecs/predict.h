@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <math.h>
 #include "lib_io.h"
 
 #define CPU 67
@@ -51,5 +52,8 @@ int getDaysCountInMonth(int Year, int Month);
 int getDaysCountInYear(int Year);
 bool isFlavorInPhyServerInfo(phyServerInfo &info, int flavorTpye);
 bool operator !=(date &a, date &b);
+
+void predictModel(int (&predictArray)[15][2], int (&trainArray)[15][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
+void predictAverageModel(int (&predictArray)[15][2], int (&trainArray)[15][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 
 #endif
