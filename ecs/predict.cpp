@@ -2,7 +2,11 @@
 #include <stdio.h>
 
 phyServerInfo serverInfo;
-int days[13] = {-1,31,28,31,30,31,30,31,31,30,31,30,31};
+int DAYS[13] = {-1,31,28,31,30,31,30,31,31,30,31,30,31};
+int FLAVOR[16][2] = {0,0, 1,1, 1,2, 1,4, 2,2, 2,4, 2,8, 4,4,
+                     4,8, 4,16, 8,8, 8,16, 8,32, 16,16, 16,32, 16,64};
+double FLAVOR_DELTA[16] = {0, 1, 2, 4, 1, 2, 4, 1,
+                           2, 4, 1, 2, 4, 1, 2, 4};
 int trainDataDayCount = 0;
 int trainDataIndex = 1;
 vector<trainData> trainDataGroup;
@@ -10,6 +14,8 @@ int predictDaysCount = 0;
 int trainDataFlavorCount[15][2];
 int predictDataFlavorCount[15][2];
 int predictVMCount = 0;
+int predictPhyServerCount = 0;
+vector<phyServer> server;
 
 //你要完成的功能总入口
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename)
@@ -104,6 +110,23 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         cout << endl;
     }
     cout << "=================" << endl;
+
+    // 分配预测后的flavor
+    server.push_back(phyServer());
+    allocateModel(server,predictDataFlavorCount,predictVMCount,serverInfo,predictPhyServerCount);
+    // 输出用例（输出全部可输出数据）：
+    cout << "predicted phy server count: " << predictPhyServerCount << endl;
+    for(int i=1;i<=predictPhyServerCount;i++)
+    {
+        cout << "Server " << i << " :" << endl;
+        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+        {
+            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
+        }
+        cout << endl;
+    }
+
+    // 整理输出到char
 
 
 	// 需要输出的内容
@@ -236,7 +259,7 @@ int getDaysCountInMonth(int Year, int Month)
         else
             return 28;
     }
-    return days[Month];
+    return DAYS[Month];
 }
 
 // 获取该年天数
@@ -343,4 +366,70 @@ void predictAverageModel(int (&predictArray)[15][2], int (&trainArray)[15][2], i
     {
         predictArray[i][1] = int(ceil(double(trainArray[i][1])*delta));
     }
+}
+
+// 分配模型参数格式：物理服务器vector（方便扩充），预测结果数组，预测后的虚拟机总数，物理服务器信息参数，预测需要服务器数量
+//  predictArray[i][j]的i<MAX_FLAVOR_TYPE，server的index从1开始
+void allocateModel(vector<phyServer> &server, int (&predictArray)[15][2], int predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount )
+{
+    if(predictVMCount > 0)
+        server.push_back(phyServer());
+    int SERVER_COUNT = server.size()-1;
+    int MAX_FLAVOR_TYPE = serverInfo.flavorTypeCount;
+    int MAX_CPU = serverInfo.CPUCount;
+    int MAX_MEM = serverInfo.MEMCount;
+    int OPT_TARGET = serverInfo.optimizedTarget;
+    int flavorType = 0, flavorCount;
+    while(predictVMCount)
+    {
+        if(OPT_TARGET)
+        {
+            for(int i=0;i<MAX_FLAVOR_TYPE;i++)
+            {
+                flavorType = predictArray[i][0];
+                flavorCount = predictArray[i][1];
+                while(flavorCount)
+                {
+                    for(int k=1;k<=SERVER_COUNT;k++)
+                    {
+
+                        if(server[k].isFull)
+                        {
+                            continue;
+                        }
+                        if(server[k].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
+                           server[k].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                        {
+                            server[k].isFull = true;
+                        }
+                        else
+                        {
+                            server[k].usedCPU += FLAVOR[flavorType][0];
+                            server[k].usedMEM += FLAVOR[flavorType][1];
+                            server[k].flavorCount[flavorType]++;
+                            flavorCount--;
+                            predictVMCount--;
+                        }
+                        if(flavorCount == 0)
+                            break;
+                        if(k == SERVER_COUNT && flavorCount > 0 && server[k].isFull)
+                        {
+                            server.push_back(phyServer());
+                            SERVER_COUNT++;
+                        }
+//                        cout << flavorCount << " " << predictVMCount << endl;
+//                        cout << k << " " << server[k].usedCPU << " " << server[k].usedMEM << " " << server[k].isFull << endl;
+//                        cout << SERVER_COUNT << endl;
+//                        system("pause");
+                    }
+                }
+            }
+
+        }
+        else
+        {
+
+        }
+    }
+    predictPhyServerCount = SERVER_COUNT;
 }

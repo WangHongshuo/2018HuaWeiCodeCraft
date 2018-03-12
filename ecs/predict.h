@@ -40,6 +40,15 @@ struct trainData
     trainData() {}
 };
 
+struct phyServer
+{
+    int usedCPU = 0;
+    int usedMEM = 0;
+    int flavorCount[16] = {0};
+    bool isFull = false;
+    phyServer() {}
+};
+
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
 void loadTrainDataToVector(vector<trainData> &target, int daysCount, char * data[MAX_DATA_NUM], int dataLineCount, phyServerInfo &serverInfo);
@@ -55,5 +64,7 @@ bool operator !=(date &a, date &b);
 
 void predictModel(int (&predictArray)[15][2], int (&trainArray)[15][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 void predictAverageModel(int (&predictArray)[15][2], int (&trainArray)[15][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
+
+void allocateModel(vector<phyServer> &server, int (&predictArray)[15][2], int predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount);
 
 #endif
