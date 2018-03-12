@@ -6,17 +6,19 @@ int days[13] = {-1,31,28,31,30,31,30,31,31,30,31,30,31};
 int trainDataDayCount;
 int trainDataIndex = 1;
 vector<trainData> trainDataGroup;
+int predictDaysCount;
 
 //你要完成的功能总入口
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename)
 {
+    // ======================================================================
     // 载入数据
     loadInfo(info, serverInfo);
     trainDataDayCount  = getTrainDataInterval(data, data_num)+1;
 
     // 分配vector空间，为方便，索引从1开始，0为无效数据
     trainDataGroup.resize(trainDataDayCount+1);
-    loadTrainData(trainDataGroup,trainDataDayCount,data,data_num,serverInfo);
+    loadTrainDataToVector(trainDataGroup,trainDataDayCount,data,data_num,serverInfo);
 
     // 所有索引从1开始
     // serverInfo.flavorTpyeCount为物理服务器可提供的flavor种类数量
@@ -25,6 +27,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // 在载入数据时，只统计serverInfo.flavorType[index]中存在的flavor类型
     // 查看某个index（日期）的某个flavor使用数量：
     // trainDataGroup[index].flavorCount[serverInfo.flavorType[typeIndex]]
+
     // 输出用例（输出全部可输出数据）：
     for(int i=1;i<=trainDataDayCount;i++)
     {
@@ -34,6 +37,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         cout << endl;
     }
     cout << "=================" << endl;
+
     // 或者转换为int数组，int[i][0]为flavor类型
     // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
     int trainDataArray[serverInfo.flavorTypeCount][trainDataDayCount+1];
@@ -43,6 +47,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         for(int j=1;j<=trainDataDayCount;j++)
             trainDataArray[i][j] = trainDataGroup[j].flavorCount[serverInfo.flavorType[i+1]];
     }
+
     // 输出用例（输出全部可输出数据）：
     for(int i=0;i<serverInfo.flavorTypeCount;i++)
     {
@@ -52,8 +57,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     }
 
     // ======================================================================
-    // TODO
-
+    // 训练模型
+    predictDaysCount = serverInfo.predictEndTime-serverInfo.predictStartTime;
 
 	// 需要输出的内容
 	char * result_file = (char *)"17\n\n0 8 0 20";
@@ -145,12 +150,12 @@ int getTrainDataInterval(char * data[MAX_DATA_NUM], int dataNum)
     pCharTemp = charToNum(pCharTemp,e);
     numToDate(s,start);
     numToDate(e,end);
-    returnInterval = getIntervalBetweenTwoDate(start,end);
+    returnInterval = end-start;
     return returnInterval;
 }
 
-// 计算两个日期之间天数
-int getIntervalBetweenTwoDate(const date &from, const date &to)
+// 重载 - ，计算两个日期之间天数
+int operator -(const date &to, const date &from)
 {
     int returnInterval = 0;
     date tempFrom = from;
@@ -198,7 +203,7 @@ int getDaysCountInYear(int Year)
 }
 
 // 加载训练数据
-void loadTrainData(vector<trainData> &target, int daysCount, char *data[], int dataLineCount, phyServerInfo &serverInfo)
+void loadTrainDataToVector(vector<trainData> &target, int daysCount, char *data[], int dataLineCount, phyServerInfo &serverInfo)
 {
     int daysIndex = 1, dataLineIndex = 0;
     int numTpyeDate, daysCountInMonth, flavorType;
