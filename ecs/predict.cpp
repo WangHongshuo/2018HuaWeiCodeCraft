@@ -24,6 +24,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // 载入数据
     loadInfo(info, serverInfo);
     trainDataDayCount  = getTrainDataInterval(data, data_num)+1;
+    sortFlavorOrderByOptimizationTarget(serverInfo);
 
     // 分配vector空间，为方便，索引从1开始，0为无效数据
     trainDataGroup.resize(trainDataDayCount+1);
@@ -208,6 +209,151 @@ void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target)
     numToDate(numTypeDate,target.predictStartTime);
     pCharTemp = charToNum(info[7+target.flavorTypeCount],numTypeDate);
     numToDate(numTypeDate,target.predictEndTime);
+}
+
+// 根据优化目标对phyServer中支持的flavor进行排序
+void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
+{
+    if(target.optimizedTarget == CPU)
+    {
+        quickSort(1,target.flavorTypeCount,target.flavorType);
+//        for(int i=1;i<=target.flavorTypeCount;i++)
+//            cout << target.flavorType[i] << " ";
+    }
+    else
+    {
+        // 先根据MEM大小排序，后根据CPU大小对相投MEM之间进行微调
+        int mem[16];
+        int left,right;
+        left = right = 1;
+        for(int i=1;i<=target.flavorTypeCount;i++)
+            mem[i] = FLAVOR[target.flavorType[i]][1];
+        quickSort(1,target.flavorTypeCount,mem,target.flavorType);
+//        for(int i=1;i<=target.flavorTypeCount;i++)
+//            cout << target.flavorType[i] << " ";
+//        cout << endl;
+        while(right <= target.flavorTypeCount)
+        {
+            for(int i=1;i<4;i++)
+            {
+                if(FLAVOR[target.flavorType[left]][1] == FLAVOR[target.flavorType[left+i]][1])
+                {
+                    right++;
+                    continue;
+                }
+                else if(left == right)
+                {
+                    left = right = right+1;
+                    break;
+                }
+                else
+                {
+                    quickSort(left,right,target.flavorType);
+                    left = right = right+1;
+                    break;
+                }
+            }
+        }
+//        for(int i=1;i<=target.flavorTypeCount;i++)
+//            cout << target.flavorType[i] << " ";
+//        cout << endl;
+    }
+}
+
+// 快速排序
+void quickSort(int left, int right, int *array)
+{
+    int flag = 0;
+    int l = left;
+    int r = right;
+    int length = right - left + 1;
+    int temp;
+    if(length > 1)
+    {
+        temp = array[left];
+        do
+        {
+            if(flag == 0)
+            {
+                if(temp <= array[r])
+                {
+                    r--;
+                    continue;
+                }
+                else
+                {
+                    array[l] = array[r];
+                    flag = 1;
+                }
+            }
+            else
+            {
+                if(temp >= array[l])
+                {
+                    l++;
+                    continue;
+                }
+                else
+                {
+                    array[r] = array[l];
+                    flag = 0;
+                }
+            }
+        }while(l < r);
+        array[l] = temp;
+        quickSort(left,l-1,array);
+        quickSort(r+1,right,array);
+    }
+}
+
+// 快速排序，根据array大小排序index,array必须和index有相同大小
+void quickSort(int left, int right, int *array, int *index)
+{
+    int flag = 0;
+    int l = left;
+    int r = right;
+    int length = right - left + 1;
+    int temp,tempIndex;
+    if(length > 1)
+    {
+        temp = array[left];
+        tempIndex = index[left];
+        do
+        {
+            if(flag == 0)
+            {
+                if(temp <= array[r])
+                {
+                    r--;
+                    continue;
+                }
+                else
+                {
+                    array[l] = array[r];
+                    index[l] = index[r];
+                    flag = 1;
+                }
+            }
+            else
+            {
+                if(temp >= array[l])
+                {
+                    l++;
+                    continue;
+                }
+                else
+                {
+                    array[r] = array[l];
+                    index[r] = index[l];
+                    flag = 0;
+                }
+            }
+        }while(l < r);
+        array[l] = temp;
+        index[l] = tempIndex;
+        quickSort(left,l-1,array,index);
+        quickSort(r+1,right,array,index);
+    }
 }
 
 // 只转换数字，其他字符跳过，遇到非字符停止
@@ -415,66 +561,83 @@ void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], i
 //  predictArray[i][j]的i<MAX_FLAVOR_TYPE，server的index从1开始
 void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount )
 {
+    int tPredictArray[16][2];
+    memcpy(tPredictArray,predictArray,(16*2)*4);
     if(predictVMCount > 0)
         server.push_back(phyServer());
     int SERVER_COUNT = server.size()-1;
     int MAX_FLAVOR_TYPE = serverInfo.flavorTypeCount;
     int MAX_CPU = serverInfo.CPUCount;
     int MAX_MEM = serverInfo.MEMCount;
-    int OPT_TARGET = serverInfo.optimizedTarget;
-    int flavorType = 0, flavorCount;
+    int flavorType = 0, flavorCount, startServerIndex = 1;
+    bool isContinuePut = true;
     while(predictVMCount)
     {
-        if(OPT_TARGET)
+        for(int i=MAX_FLAVOR_TYPE;i>0;i--)
         {
-            for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
+            flavorType = tPredictArray[i][0];
+            flavorCount = tPredictArray[i][1];
+            isContinuePut = true;
+            while(flavorCount)
             {
-                flavorType = predictArray[i][0];
-                flavorCount = predictArray[i][1];
-                while(flavorCount)
+                for(int k=startServerIndex;k<=SERVER_COUNT;k++)
                 {
-                    for(int k=1;k<=SERVER_COUNT;k++)
+//                    cout << "Before server[" << k << "] add Flavor[" << flavorType << "]:" << endl;
+//                    cout << "Flavor[" << flavorType << "] count: " << flavorCount << endl;
+//                    cout << "server[" << k << "] used CPU: " << server[k].usedCPU << " used MEM: " << server[k].usedMEM
+//                         << " server is full = " << server[k].isFull << endl;
+//                    cout << "=================" << endl;
+//                    system("pause");
+                    if(server[k].isFull)
                     {
-
-                        if(server[k].isFull)
-                        {
-                            continue;
-                        }
-                        if(server[k].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
-                           server[k].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                        continue;
+                    }
+                    if(server[k].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
+                            server[k].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                    {
+                        if(i==1)
                         {
                             server[k].isFull = true;
+                            if(k == SERVER_COUNT && flavorCount > 0)
+                            {
+                                server.push_back(phyServer());
+                                SERVER_COUNT++;
+                                startServerIndex++;
+                                isContinuePut = false;
+                                break;
+                            }
+                            continue;
                         }
                         else
                         {
-                            server[k].usedCPU += FLAVOR[flavorType][0];
-                            server[k].usedMEM += FLAVOR[flavorType][1];
-                            server[k].flavorCount[flavorType]++;
-                            flavorCount--;
-                            predictVMCount--;
-                        }
-                        if(flavorCount == 0)
+                            isContinuePut = false;
                             break;
-                        if(k == SERVER_COUNT && flavorCount > 0 && server[k].isFull)
-                        {
-                            server.push_back(phyServer());
-                            SERVER_COUNT++;
                         }
-//                        cout << flavorCount << " " << predictVMCount << endl;
-//                        cout << k << " " << server[k].usedCPU << " " << server[k].usedMEM << " " << server[k].isFull << endl;
-//                        cout << SERVER_COUNT << endl;
-//                        system("pause");
+                    }
+                    else
+                    {
+                        server[k].usedCPU += FLAVOR[flavorType][0];
+                        server[k].usedMEM += FLAVOR[flavorType][1];
+                        server[k].flavorCount[flavorType]++;
+                        flavorCount--;
+                        predictVMCount--;
+                    }
+                    tPredictArray[i][1] = flavorCount;
+                    if(flavorCount == 0)
+                        break;
+                    if(k == SERVER_COUNT && flavorCount > 0 && server[k].isFull)
+                    {
+                        server.push_back(phyServer());
+                        SERVER_COUNT++;
                     }
                 }
+                if(!isContinuePut)
+                    break;
             }
-
-        }
-        else
-        {
-
         }
     }
     predictPhyServerCount = SERVER_COUNT;
+    cout << "DONE!";
 }
 
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息

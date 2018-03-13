@@ -52,6 +52,9 @@ struct phyServer
 
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
+void sortFlavorOrderByOptimizationTarget(phyServerInfo &target);
+void quickSort(int left, int right, int * array);
+void quickSort(int left, int right, int * array , int * index);
 void loadTrainDataToVector(vector<trainData> &target, int daysCount, char * data[MAX_DATA_NUM], int dataLineCount, phyServerInfo &serverInfo);
 char * charToNum(char * str, int &target);
 void numToDate(int num, date &target);
@@ -63,7 +66,7 @@ int getDaysCountInYear(int Year);
 bool isFlavorInPhyServerInfo(phyServerInfo &info, int flavorTpye);
 bool operator !=(date &a, date &b);
 
-void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo);
+void predictComplexModel(int (&predictArray)[16][2], void * trainArray, int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 
 void predictSimpleModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
