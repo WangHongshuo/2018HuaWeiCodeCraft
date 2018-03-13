@@ -37,7 +37,11 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // 查看某个index（日期）的某个flavor使用数量：
     // trainDataGroup[index].flavorCount[serverInfo.flavorType[typeIndex]]
 
-    // 输出用例（输出全部可输出数据）：
+    // 输出用例（输出全部可输出数据），数据排列：年 月 日 flavor X的数量
+//    cout << " Y   " << "M " << "D";
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//        cout << " " << serverInfo.flavorType[i];
+//    cout << endl;
 //    for(int i=1;i<=trainDataDayCount;i++)
 //    {
 //        cout << trainDataGroup[i].time.Y << " " << trainDataGroup[i].time.M << " " << trainDataGroup[i].time.D << " ";
@@ -46,16 +50,6 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 //        cout << endl;
 //    }
 //    cout << "=================" << endl;
-
-    // 或者转换为int数组，int[i][0]为flavor类型
-    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
-    int trainDataArray[serverInfo.flavorTypeCount+1][trainDataDayCount+1];
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        trainDataArray[i][0] = serverInfo.flavorType[i];
-        for(int j=1;j<=trainDataDayCount;j++)
-            trainDataArray[i][j] = trainDataGroup[j].flavorCount[serverInfo.flavorType[i]];
-    }
 
     // 输出用例（输出全部可输出数据）：
 //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
@@ -67,39 +61,27 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 //    cout << "=================" << endl;
 
     // ======================================================================
-    // 训练模型
-    // trainDataFlavorCount初始化为[16][2]
-    // trainDataFlavorCount[i][0]为flavorType，[i][1]为训练数据时间范围内该flavorTpye的总数
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        trainDataFlavorCount[i][0] = trainDataArray[i][0];
-        trainDataFlavorCount[i][1] = 0;
-        for(int j=1;j<trainDataDayCount;j++)
-        {
-            trainDataFlavorCount[i][1] += trainDataArray[i][j];
-        }
-    }
-
-    // 输出用例（输出全部可输出数据）：
-//    cout << "train data count: " << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        cout << "Flavor" << trainDataFlavorCount[i][0] << "  Count: " << trainDataFlavorCount[i][1];
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
 
     // 预测
-    predictDaysCount = serverInfo.predictEndTime-serverInfo.predictStartTime;
     // predictDataFlavorCount初始化为[16][2]
     // 结构与trainDataFlavorCount相同
+    predictDaysCount = serverInfo.predictEndTime-serverInfo.predictStartTime;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        predictDataFlavorCount[i][0] = trainDataFlavorCount[i][0];
+        predictDataFlavorCount[i][0] = serverInfo.flavorType[i];
         predictDataFlavorCount[i][1] = 0;
     }
-    // 预测模型：预测后的结果数组，需要训练的数组，flavor种类数量，预测天数
-    predictModel(predictDataFlavorCount,trainDataFlavorCount,serverInfo.flavorTypeCount,trainDataDayCount,predictDaysCount);
+
+    // 预测模型（只可启用一种模型，不启用的模型注释掉）
+    // 预测模型参数：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
+
+    // 复杂预测模型
+//    predictComplexModel(predictDataFlavorCount,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
+
+    // 简单预测模型
+    predictSimpleModel(predictDataFlavorCount,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
+
+    // 计算虚拟机总数
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
         predictVMCount += predictDataFlavorCount[i][1];
 
@@ -111,6 +93,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 //        cout << endl;
 //    }
 //    cout << "=================" << endl;
+
+    // ======================================================================
 
     // 分配预测后的flavor
     server.push_back(phyServer());
@@ -128,6 +112,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 //        cout << endl;
 //    }
 //    cout << "=================" << endl;
+
+    // ======================================================================
 
     // 整理输出到char
     string strOutput;
@@ -382,12 +368,36 @@ bool operator !=(date &a, date &b)
     return false;
 }
 
-// 预测模型参数格式：预测后的结果数组，需要训练的数组，flavor种类数量，训练数据天数，预测天数
-// predictArray[i][j]和trainArray[i][j]的i<flavorTypeCount
-void predictModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount)
+// 简单预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
+void predictSimpleModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
-    // 平均法预测模型，新建模型可按照该函数格式新建函数
-    predictAverageModel(predictArray,trainArray,flavorTypeCount,trainDataDayCount,predictDaysCount);
+    // 训练输入模型：每个flavor在训练数据时间内的总数
+    // trainDataFlavorCount初始化为[16][2]
+    // trainDataFlavorCount[i][0]为flavorType，[i][1]为训练数据时间范围内该flavorTpye的总数
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        trainDataFlavorCount[i][0] = serverInfo.flavorType[i];
+        trainDataFlavorCount[i][1] = 0;
+    }
+    for(int i=1;i<=trainDataDayCount;i++)
+    {
+        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+        {
+            trainDataFlavorCount[j][1] += vTrainData[i].flavorCount[serverInfo.flavorType[j]];
+        }
+    }
+
+    // 输出用例（输出全部可输出数据）：
+//    cout << "train data count: " << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        cout << "Flavor" << trainDataFlavorCount[i][0] << "  Count: " << trainDataFlavorCount[i][1];
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    // 平均法预测模型
+    predictAverageModel(predictArray,trainDataFlavorCount,serverInfo.flavorTypeCount,trainDataDayCount,predictDaysCount);
 }
 
 // 平均法预测模型
@@ -464,4 +474,39 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
         }
     }
     predictPhyServerCount = SERVER_COUNT;
+}
+
+// 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
+void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
+{
+    // 将vector数据放入数组中
+    // int[i][0]为flavor类型
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    int trainDataArray[serverInfo.flavorTypeCount+1][trainDataDayCount+1];
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        trainDataArray[i][0] = serverInfo.flavorType[i];
+        for(int j=1;j<=trainDataDayCount;j++)
+            trainDataArray[i][j] = vTrainData[j].flavorCount[serverInfo.flavorType[i]];
+    }
+    // 输出用例（输出全部可输出数据）：
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=trainDataDayCount;j++)
+//            cout << trainDataArray[i][j] << " ";
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    // 可用参数：
+    // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    // 训练数据天数trainDataDayCount，预测天数predictDaysCount
+    // 物理服务器信息serverInfo（flavor种类数量serverInfo.flavorTypeCount）
+    //　输出参数：predictArray
+    // predictArray[i][0]为flavor的类型，已经初始化
+    // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
+    // TODO
+
+
 }

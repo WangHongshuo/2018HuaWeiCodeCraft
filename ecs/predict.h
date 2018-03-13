@@ -63,7 +63,8 @@ int getDaysCountInYear(int Year);
 bool isFlavorInPhyServerInfo(phyServerInfo &info, int flavorTpye);
 bool operator !=(date &a, date &b);
 
-void predictModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
+void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo);
+void predictSimpleModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo);
 void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 
 void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount);
