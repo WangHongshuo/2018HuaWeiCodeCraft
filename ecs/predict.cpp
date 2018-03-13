@@ -62,6 +62,33 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 
     // ======================================================================
 
+    // 训练输入模型：每个flavor在训练数据时间内的总数
+    // trainDataFlavorCount初始化为[16][2]
+    // trainDataFlavorCount[i][0]为flavorType，[i][1]为训练数据时间范围内该flavorTpye的总数
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        trainDataFlavorCount[i][0] = serverInfo.flavorType[i];
+        trainDataFlavorCount[i][1] = 0;
+    }
+    for(int i=1;i<=trainDataDayCount;i++)
+    {
+        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+        {
+            trainDataFlavorCount[j][1] += trainDataGroup[i].flavorCount[serverInfo.flavorType[j]];
+        }
+    }
+
+    // 输出用例（输出全部可输出数据）：
+//    cout << "train data count: " << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        cout << "Flavor" << trainDataFlavorCount[i][0] << "  Count: " << trainDataFlavorCount[i][1];
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    // ======================================================================
+
     // 预测
     // predictDataFlavorCount初始化为[16][2]
     // 结构与trainDataFlavorCount相同
@@ -73,13 +100,12 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     }
 
     // 预测模型（只可启用一种模型，不启用的模型注释掉）
-    // 预测模型参数：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
 
-    // 复杂预测模型
+    // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
 //    predictComplexModel(predictDataFlavorCount,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
 
-    // 简单预测模型
-    predictSimpleModel(predictDataFlavorCount,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
+    // 简单预测模型：预测每种flavor数量的数组，训练数据每个flavor数量数组，flavor种类数量，训练数据天数，预测天数
+    predictSimpleModel(predictDataFlavorCount,trainDataFlavorCount,serverInfo.flavorTypeCount,trainDataDayCount,predictDaysCount);
 
     // 计算虚拟机总数
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
@@ -368,36 +394,11 @@ bool operator !=(date &a, date &b)
     return false;
 }
 
-// 简单预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
-void predictSimpleModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
+// 简单预测模型：预测每种flavor数量的数组，训练数据每个flavor数量数组，flavor种类数量，训练数据天数，预测天数
+void predictSimpleModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount)
 {
-    // 训练输入模型：每个flavor在训练数据时间内的总数
-    // trainDataFlavorCount初始化为[16][2]
-    // trainDataFlavorCount[i][0]为flavorType，[i][1]为训练数据时间范围内该flavorTpye的总数
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        trainDataFlavorCount[i][0] = serverInfo.flavorType[i];
-        trainDataFlavorCount[i][1] = 0;
-    }
-    for(int i=1;i<=trainDataDayCount;i++)
-    {
-        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
-        {
-            trainDataFlavorCount[j][1] += vTrainData[i].flavorCount[serverInfo.flavorType[j]];
-        }
-    }
-
-    // 输出用例（输出全部可输出数据）：
-//    cout << "train data count: " << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        cout << "Flavor" << trainDataFlavorCount[i][0] << "  Count: " << trainDataFlavorCount[i][1];
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-
     // 平均法预测模型
-    predictAverageModel(predictArray,trainDataFlavorCount,serverInfo.flavorTypeCount,trainDataDayCount,predictDaysCount);
+    predictAverageModel(predictArray,trainArray,flavorTypeCount,trainDataDayCount,predictDaysCount);
 }
 
 // 平均法预测模型
