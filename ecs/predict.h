@@ -1,6 +1,7 @@
 #ifndef __ROUTE_H__
 #define __ROUTE_H__
 
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <math.h>
