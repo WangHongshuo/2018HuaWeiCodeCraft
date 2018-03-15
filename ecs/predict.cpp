@@ -675,10 +675,10 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-    double a = 0.5;
-    int dataLength = trainDataDayCount+predictDaysCount;
-    int packSize = predictDaysCount;
-    int PackedTrainArrayLength = dataLength-packSize+1;
+    const double a = 0.5;
+    const int dataLength = trainDataDayCount+predictDaysCount;
+    const int packSize = predictDaysCount;
+    const int PackedTrainArrayLength = dataLength-packSize+1;
 
     double packedTrainArray[1+serverInfo.flavorTypeCount][1+PackedTrainArrayLength]={0};
     // 以预测天数打包
