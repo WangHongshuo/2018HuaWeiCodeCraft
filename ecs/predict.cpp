@@ -675,7 +675,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-    double a = 0.5;
+
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -720,18 +720,56 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
     for(int i=0;i<=serverInfo.flavorTypeCount;i++)
         S1[i].resize(1+packedArrayLength);
+
+    vector <double> test_S1(1+packedArrayLength);
+    vector <double> test_output(1+predictDaysCount);
+
     int initialPackSize = predictDaysCount;
     for(int i=0;i<=serverInfo.flavorTypeCount;i++)
     {
         for(int j=1;j<=initialPackSize;j++)
             S1[i][0] += packedArray[i][j];
-        S1[i][0] /= initialPackSize;
+       test_S1[0] = S1[i][0] /= initialPackSize;
         // 开始预测，预测已知数据
-        for(int j=1;j<=packedArrayLength-packSize;j++)
+        // 循环找出最佳a
+        double a, temp_a = 0;
+        double diff = 0, temp_diff = 0;
+        for(int j=1;j<=9;j++)
         {
-            S1[i][j] = a*packedArray[i][j]+(1-a)*S1[i][j-1];
+            a = 0.1*double(j);
+            for(int k=1;k<=packedArrayLength-packSize;k++)
+            {
+                test_S1[k] = S1[i][k] = a*packedArray[i][k]+(1-a)*S1[i][k-1];
+            }
+            S1[i][0] = packedArray[i][0];
+            // 预测trainData结尾predictDaysCount天数的packedArray数据
+            test_output[0] = packedArray[i][packedArrayLength-2*packSize];
+            for(int k=1;k<=predictDaysCount;k++)
+            {
+                test_output[k] = a*test_output[k-1]+
+                        (1-a)*test_S1[packedArrayLength-2*packSize+k-1];
+                test_S1[packedArrayLength-packSize+k] = a*test_output[k]+
+                        (1-a)*test_S1[packedArrayLength-packSize+k-1];
+            }
+            // 计算diff
+            if(j == 1)
+            {
+                for(int k=1;k<=predictDaysCount;k++)
+                    diff += pow(packedArray[i][packedArrayLength-2*packSize+k]-test_output[k],2);
+                temp_a = a;
+            }
+            else
+            {
+                for(int k=1;k<=predictDaysCount;k++)
+                    temp_diff += pow(packedArray[i][packedArrayLength-2*packSize+k]-test_output[k],2);
+                if(temp_diff < diff)
+                {
+                    diff = temp_diff;
+                    temp_a = a;
+                }
+            }
         }
-        S1[i][0] = packedArray[i][0];
+        a = temp_a;
         // 预测未知数据
         for(int j=1;j<=predictDaysCount;j++)
         {
