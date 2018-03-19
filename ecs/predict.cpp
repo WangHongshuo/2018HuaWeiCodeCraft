@@ -637,7 +637,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // 将vector数据放入数组中
     // int[i][0]为flavor类型
     // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
-    int trainDataArray[serverInfo.flavorTypeCount+1][1+trainDataDayCount+predictDaysCount];
+    int trainDataArray[serverInfo.flavorTypeCount+1][1+trainDataDayCount];
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         trainDataArray[i][0] = serverInfo.flavorType[i];
@@ -674,91 +674,4 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
     // TODO
 
-    // 指数平滑预测
-    double a = 0.5;
-    int dataLength = trainDataDayCount+predictDaysCount;
-    int packSize = predictDaysCount;
-    int packedArrayLength = 1+dataLength-packSize;
-
-    vector<vector <double>> packedArray(1+serverInfo.flavorTypeCount);
-    for(int i=0;i<=serverInfo.flavorTypeCount;i++)
-        packedArray[i].resize(1+packedArrayLength);
-
-    // 以预测天数打包
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-       packedArray[i][0] = trainDataArray[i][0];
-    }
-    //
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        for(int j=1;j<=packedArrayLength-packSize;j++)
-        {
-            for(int k=0;k<packSize;k++)
-            {
-                packedArray[i][j] += trainDataArray[i][j+k];
-            }
-        }
-    }
-    // 初始化需要预测的部分
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        for(int j=packedArrayLength-packSize+1;j<=packedArrayLength;j++)
-            packedArray[i][j] = 0;
-    }
-    // 输出用例（输出全部可输出数据）：
-//    cout << "Packed Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=PackedTrainArrayLength;j++)
-//            cout << packedTrainArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-
-    // 指数平滑法
-    vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
-    for(int i=0;i<=serverInfo.flavorTypeCount;i++)
-        S1[i].resize(1+packedArrayLength);
-    int initialPackSize = predictDaysCount;
-    for(int i=0;i<=serverInfo.flavorTypeCount;i++)
-    {
-        for(int j=1;j<=initialPackSize;j++)
-            S1[i][0] += packedArray[i][j];
-        S1[i][0] /= initialPackSize;
-        // 开始预测，预测已知数据
-        for(int j=1;j<=packedArrayLength-packSize;j++)
-        {
-            S1[i][j] = a*packedArray[i][j]+(1-a)*S1[i][j-1];
-        }
-        S1[i][0] = packedArray[i][0];
-        // 预测未知数据
-        for(int j=1;j<=predictDaysCount;j++)
-        {
-            packedArray[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j-1]+
-                    (1-a)*S1[i][packedArrayLength-packSize+j-1];
-            S1[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j]+
-                    (1-a)*S1[i][packedArrayLength-packSize+j-1];
-        }
-    }
-    // 输出用例（输出全部可输出数据）：
-//    cout << "S[i] Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=PackedTrainArrayLength;j++)
-//            cout << S[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-//    cout << "PackedArray[i]" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=PackedTrainArrayLength;j++)
-//            cout << packedTrainArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-        predictArray[i][1] = ceil(packedArray[i][packedArrayLength]);
 }
