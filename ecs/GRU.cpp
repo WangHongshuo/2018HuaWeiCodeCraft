@@ -31,6 +31,13 @@ void GRU::init()
     initCellValue();
 }
 
+void GRU::startTrainning()
+{
+    x = matT(x);
+    y = matT(y);
+
+}
+
 double GRU::sigmoidForward(double x)
 {
     return 1.0/(1.0+exp(-x));
@@ -41,6 +48,44 @@ double GRU::sigmoidBackWard(double x)
     return sigmoidForward(x)/(1.0-sigmoidForward(x));
 }
 
+vector<vector<double> > GRU::matSigmoidF(const vector<vector<double> > &mat)
+{
+    vector<vector<double>> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+        output[i].resize(mat[0].size());
+    for(uint i=0;i<mat.size();i++)
+        for(uint j=0;j<mat[0].size();j++)
+            output[i][j] = sigmoidForward(mat[i][j]);
+    return output;
+}
+
+vector<double> GRU::matSigmoidF(const vector<double> &mat)
+{
+    vector<double> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+            output[i] = sigmoidForward(mat[i]);
+    return output;
+}
+
+vector<vector<double> > GRU::matSigmoidB(const vector<vector<double> > &mat)
+{
+    vector<vector<double>> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+        output[i].resize(mat[0].size());
+    for(uint i=0;i<mat.size();i++)
+        for(uint j=0;j<mat[0].size();j++)
+            output[i][j] = sigmoidBackWard(mat[i][j]);
+    return output;
+}
+
+vector<double> GRU::matSigmoidB(const vector<double> &mat)
+{
+    vector<double> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+            output[i] = sigmoidBackWard(mat[i]);
+    return output;
+}
+
 double GRU::tanhForward(double x)
 {
     return 2.0/(1.0+exp(-2.0*x))-1.0;
@@ -49,6 +94,44 @@ double GRU::tanhForward(double x)
 double GRU::tanhBackward(double x)
 {
     return 1.0-pow(tanhForward(x),2);
+}
+
+vector<vector<double> > GRU::matTanhF(const vector<vector<double> > &mat)
+{
+    vector<vector<double>> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+        output[i].resize(mat[0].size());
+    for(uint i=0;i<mat.size();i++)
+        for(uint j=0;j<mat[0].size();j++)
+            output[i][j] = tanhForward(mat[i][j]);
+    return output;
+}
+
+vector<double> GRU::matTanhF(const vector<double> &mat)
+{
+    vector<double> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+            output[i] = tanhForward(mat[i]);
+    return output;
+}
+
+vector<vector<double> > GRU::matTanhB(const vector<vector<double> > &mat)
+{
+    vector<vector<double>> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+        output[i].resize(mat[0].size());
+    for(uint i=0;i<mat.size();i++)
+        for(uint j=0;j<mat[0].size();j++)
+            output[i][j] = tanhBackward(mat[i][j]);
+    return output;
+}
+
+vector<double> GRU::matTanhB(const vector<double> &mat)
+{
+    vector<double> output(mat.size());
+    for(uint i=0;i<mat.size();i++)
+            output[i] = tanhBackward(mat[i]);
+    return output;
 }
 
 // 分配空间
@@ -286,7 +369,7 @@ vector<vector<double> > matDotMul(const vector<vector<double> > &mat1, const vec
 }
 
 // 矩阵转置，采用return返回，效率较低，只进行过一次单元测试
-vector<vector<double> > matT(vector<vector<double> > &src)
+vector<vector<double> > matT(const vector<vector<double> > &src)
 {
     vector<vector<double>> dst(src[0].size());
     for(uint i=0;i<src[0].size();i++)
@@ -299,3 +382,62 @@ vector<vector<double> > matT(vector<vector<double> > &src)
     return dst;
 }
 
+// 常数与矩阵相加，未单元测试
+vector<vector<double> > operator +(double a, const vector<vector<double> > &mat2)
+{
+    vector<vector<double> > output;
+    output.resize(mat2.size());
+    for(uint i=0;i<mat2[0].size();i++)
+        output[i].resize(mat2[0].size());
+    for(uint i=0;i<mat2.size();i++)
+    {
+        for(uint j=0;j<mat2[0].size();j++)
+        {
+            output[i][j] = a+mat2[i][j];
+        }
+    }
+    return output;
+}
+
+// 常数与矩阵相减，未单元测试
+vector<vector<double> > operator -(double a, const vector<vector<double> > &mat2)
+{
+    vector<vector<double> > output;
+    output.resize(mat2.size());
+    for(uint i=0;i<mat2[0].size();i++)
+        output[i].resize(mat2[0].size());
+    for(uint i=0;i<mat2.size();i++)
+    {
+        for(uint j=0;j<mat2[0].size();j++)
+        {
+            output[i][j] = a-mat2[i][j];
+        }
+    }
+    return output;
+}
+
+// 向量和矩阵相乘，只进行过一次单元测试
+vector<double> operator *(const vector<double> &mat1, const vector<vector<double> > &mat2)
+{
+    vector<double> output;
+    if(mat1.size() != mat2.size())
+    {
+        cout << "Error in 1D & 2D matrixMul!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+    else
+    {
+        output.resize(mat2[0].size());
+        output.assign(mat2[0].size(),0.0);
+        for(uint i=0;i<mat2[0].size();i++)
+        {
+            for(uint j=0;j<mat1.size();j++)
+            {
+                output[i] += (mat1[j]*mat2[j][i]);
+            }
+        }
+        return output;
+    }
+}
