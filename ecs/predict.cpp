@@ -452,6 +452,19 @@ int getDaysCountInYear(int Year)
         return 365;
 }
 
+// 获取星期
+int getDayOfTheWeek(const date &target)
+{
+    // 2015.01.01  4
+    date basedDay(2015,1,1);
+    int temp = target - basedDay;
+    temp = (4+temp%7)%7;
+    if(temp > 0)
+        return temp;
+    else
+        return temp+7;
+}
+
 // 加载训练数据
 void loadTrainDataToVector(vector<trainData> &target, int daysCount, char *data[], int dataLineCount, phyServerInfo &serverInfo)
 {
@@ -463,6 +476,7 @@ void loadTrainDataToVector(vector<trainData> &target, int daysCount, char *data[
     pCharTemp = jumpToNextCharBlock(pCharTemp);
     pCharTemp = charToNum(pCharTemp,numTpyeDate);
     numToDate(numTpyeDate,target[daysIndex].time);
+    target[daysIndex].dayOfWeek = getDayOfTheWeek(target[daysIndex].time);
     daysCountInMonth = getDaysCountInMonth(target[daysIndex].time.Y,target[daysIndex].time.M);
     daysIndex ++;
     while(daysIndex <= daysCount)
@@ -485,6 +499,9 @@ void loadTrainDataToVector(vector<trainData> &target, int daysCount, char *data[
                 daysCountInMonth = getDaysCountInMonth(target[daysIndex].time.Y,target[daysIndex].time.M);
             }
         }
+        target[daysIndex].dayOfWeek = target[daysIndex-1].dayOfWeek+1;
+        if(target[daysIndex].dayOfWeek > 7)
+            target[daysIndex].dayOfWeek = 1;
         daysIndex++;
     }
     // 从文本中读入数据
@@ -673,5 +690,6 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // predictArray[i][0]为flavor的类型，已经初始化
     // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
     // TODO
-
+    for(int i=1;i<=trainDataDayCount;i++)
+        cout << vTrainData[i].dayOfWeek << endl;
 }

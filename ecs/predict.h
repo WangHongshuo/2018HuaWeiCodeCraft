@@ -7,6 +7,7 @@
 #include <math.h>
 #include <string.h>
 #include <string>
+#include "GRU.h"
 #include "lib_io.h"
 
 #define CPU 67
@@ -16,10 +17,10 @@ using namespace std;
 
 struct date
 {
-    int Y = 0;
-    int M = 0;
-    int D = 0;
-    date() {}
+    int Y;
+    int M;
+    int D;
+    date(int y=0, int m=0, int d=0):Y(y),M(m),D(d) {}
 };
 
 struct phyServerInfo
@@ -38,6 +39,8 @@ struct phyServerInfo
 struct trainData
 {
     date time;
+    int dayOfWeek = 0;
+    bool isSpecialDay = false;
     // 为方便，索引从1开始，0为无效数据
     int flavorCount[16] = {0};
     trainData() {}
@@ -65,6 +68,7 @@ int getTrainDataInterval(char * data[MAX_DATA_NUM], int dataNum);
 int operator -(const date &to, const date &from);
 int getDaysCountInMonth(int Year, int Month);
 int getDaysCountInYear(int Year);
+int getDayOfTheWeek(const date &target);
 bool isFlavorInPhyServerInfo(phyServerInfo &info, int flavorTpye);
 bool operator !=(date &a, date &b);
 
