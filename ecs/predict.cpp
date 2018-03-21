@@ -651,16 +651,20 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
 void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
-    // 组建训练数据,
-    vector<vector<int>> x(2);
-    for(int i=0;i<2;i++)
-        x[i].resize(trainDataDayCount+1);
-    vector<int> y;
-    y.resize(trainDataDayCount+1);
-    for(int i=1;i<=trainDataDayCount;i++)
+    // 组建训练数据,索引从0开始
+    vector<vector<double>> x(1);
+    for(int i=0;i<1;i++)
+        x[i].resize(trainDataDayCount);
+    vector<vector<double>> y(1);
+    for(int i=0;i<1;i++)
+        y[i].resize(trainDataDayCount);
+    for(int i=0;i<trainDataDayCount;i++)
     {
-        x[0][i] = i;
-        x[1][i] = vTrainData[i].dayOfWeek;
-        y[i] = vTrainData[i].flavorCount[serverInfo.flavorType[1]];
+        x[0][i] = i+1;
+        y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[1]];
     }
+    GRU gru;
+    gru.setDims(16,16);
+    gru.setData(x,y);
+    gru.init();
 }

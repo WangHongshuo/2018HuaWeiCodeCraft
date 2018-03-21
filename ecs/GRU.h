@@ -1,6 +1,7 @@
 #ifndef GRU_H
 #define GRU_H
 #include <iostream>
+#include <time.h>
 #include <vector>
 #include <math.h>
 
@@ -20,17 +21,27 @@ class GRU
 public:
     GRU();
     ~GRU();
+    void setDims(int hidenDims, int unitNums);
+    void setData(vector<vector<double>> &X,vector<vector<double>> &Y);
+    void init();
+
     double sigmoidForward(double x);
     double sigmoidBackWard(double x);
     double tanhForward(double x);
     double tanhBackward(double x);
 
+    vector<vector<double>> x;
+    vector<vector<double>> y;
+
 private:
     void initCell();
+    void initCellValue();
+    double getRandomValue();
     int uNum;
     int xDim;
     int yDim;
     int hDim;
+
     vector<vector<double>> Wy;
     vector<vector<double>> Wr;
     vector<vector<double>> Ur;
