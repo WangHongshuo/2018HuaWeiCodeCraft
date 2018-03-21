@@ -651,45 +651,16 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
 void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
-    // 将vector数据放入数组中
-    // int[i][0]为flavor类型
-    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
-    int trainDataArray[serverInfo.flavorTypeCount+1][1+trainDataDayCount];
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        trainDataArray[i][0] = serverInfo.flavorType[i];
-        for(int j=1;j<=trainDataDayCount;j++)
-            trainDataArray[i][j] = vTrainData[j].flavorCount[serverInfo.flavorType[i]];
-    }
-
-    // 输出用例（输出全部可输出数据）：
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            cout << trainDataArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-
-    // 输出数据到文件
-//    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            output << trainDataArray[i][j] << " ";
-//        output << '\n';
-//    }
-//    system("pause");
-
-    // 可用参数：
-    // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
-    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
-    // 训练数据天数trainDataDayCount，预测天数predictDaysCount
-    // 物理服务器信息serverInfo（flavor种类数量serverInfo.flavorTypeCount）
-    //　输出参数：predictArray
-    // predictArray[i][0]为flavor的类型，已经初始化
-    // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
-    // TODO
+    // 组建训练数据,
+    vector<vector<int>> x(2);
+    for(int i=0;i<2;i++)
+        x[i].resize(trainDataDayCount+1);
+    vector<int> y;
+    y.resize(trainDataDayCount+1);
     for(int i=1;i<=trainDataDayCount;i++)
-        cout << vTrainData[i].dayOfWeek << endl;
+    {
+        x[0][i] = i;
+        x[1][i] = vTrainData[i].dayOfWeek;
+        y[i] = vTrainData[i].flavorCount[serverInfo.flavorType[1]];
+    }
 }
