@@ -35,6 +35,20 @@ void GRU::startTrainning()
 {
     x = matT(x);
     y = matT(y);
+    // Forward
+    rValue[0] = matSigmoidF(x[0]*Wr);
+    hBarValue[0] = matTanhF(x[0]*W);
+    zValue[0] = matSigmoidF(x[0]*Wz);
+    hValue[0] = matDotMul(zValue[0],hBarValue[0]);
+    yValue[0] = matSigmoidF(hValue[0]*Wy);
+    for(int t=1;t<uNum;t++)
+    {
+        rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
+        hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1])))*U);
+        zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
+        hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+        yValue[t] = matSigmoidF(hValue[t]*Wy);
+    }
 
 }
 
@@ -438,6 +452,59 @@ vector<double> operator *(const vector<double> &mat1, const vector<vector<double
                 output[i] += (mat1[j]*mat2[j][i]);
             }
         }
+        return output;
+    }
+}
+
+// 向量和向量点乘，未单元测试
+vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2)
+{
+    vector<double> output;
+    if(mat1.size() != mat2.size())
+    {
+        cout << "Error in 1D & 1D matrixDotMul!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+    else
+    {
+        output.resize(mat1.size());
+        for(uint i=0;i<mat1.size();i++)
+            output[i] = mat1[i]*mat2[i];
+        return output;
+    }
+}
+
+// 常数减向量，未单元测试
+vector<double> operator -(double a, const vector<double> &mat2)
+{
+    vector<double> output;
+    output.resize(mat2.size());
+
+    for(uint i=0;i<mat2.size();i++)
+    {
+        output[i] = a-mat2[i];
+    }
+    return output;
+}
+
+// 向量相加，未单元测试
+vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2)
+{
+    vector<double> output;
+    if(mat1.size() != mat2.size())
+    {
+        cout << "Error in 1D & 1D matrixSub!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+    else
+    {
+        output.resize(mat1.size());
+        for(uint i=0;i<mat1.size();i++)
+            output[i] = mat1[i]+mat2[i];
         return output;
     }
 }

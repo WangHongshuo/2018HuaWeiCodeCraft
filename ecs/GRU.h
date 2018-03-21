@@ -8,13 +8,16 @@
 using namespace std;
 
 vector<vector<double>> operator +(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
+vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> operator +(double a, const vector<vector<double>> &mat2);
 vector<vector<double>> operator -(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> operator -(double a, const vector<vector<double>> &mat2);
+vector<double> operator -(double a, const vector<double> &mat2);
 vector<vector<double>> matDotDiv(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> operator *(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<double> operator *(const vector<double> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> matDotMul(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
+vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> matT(const vector<vector<double> > &src);
 
 typedef unsigned int uint;

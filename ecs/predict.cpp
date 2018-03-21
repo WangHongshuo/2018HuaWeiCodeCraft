@@ -664,7 +664,20 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[1]];
     }
     GRU gru;
-    gru.setDims(16,16);
+    gru.setDims(16,trainDataDayCount);
     gru.setData(x,y);
     gru.init();
+    gru.startTrainning();
+
+    vector<double> a(2);
+    a[0] = 1;
+    a[1] = 2;
+    vector<vector<double>> b(2);
+    b[0].resize(2);
+    b[1].resize(2);
+    b[0][0] = b[0][1] = 1;
+    b[1][0] = b[1][1] = 2;
+    vector<double> c = a*b;
+    for(uint i=0;i<c.size();i++)
+        cout << c[i] << " ";
 }
