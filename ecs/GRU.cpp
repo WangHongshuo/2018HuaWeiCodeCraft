@@ -49,7 +49,29 @@ void GRU::startTrainning()
         hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
         yValue[t] = matSigmoidF(hValue[t]*Wy);
     }
+    // Backward
+    for(int t=uNum-1;t>=2;t--)
+    {
+        delta_y = matDotMul((yValue[t]-y[t]),matSigmoidB(yValue[t]));
+        delta_h = delta_y*matT(Wy)+delta_z_Next*matT(Uz)+matDotMul(delta_Next*matT(U),rValue[t+1])+delta_r_Next*matT(Ur)+
+                matDotMul(delta_h_Next,(1-zValue[t+1]));
+        delta_z = matDotMul(delta_h,(hBarValue[t]-hValue[t-1]),matSigmoidB(zValue[t]));
+        delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
+        delta_r = matDotMul(hValue[t-1],(matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]))*matT(U)),matSigmoidB(rValue[t]));
 
+        dWy = dWy+matT(hValue[t])*delta_y;
+        dWz = dWz+matT(x[t])*delta_z;
+        dUz = dUz+matT(hValue[t])*delta_z;
+        dW  = dW+matT(x[t])*delta;
+        dU  = dU+matT(matDotMul(rValue[t],hValue[t-1]))*delta;
+        dWr = dWr+matT(x[t])*delta_r;
+        dUr = dUr+matT(hValue[t-1])*delta_r;
+
+        delta_r_Next = delta_r;
+        delta_z_Next = delta_z;
+        delta_h_Next = delta_h;
+        delta_Next   = delta;
+    }
 }
 
 double GRU::sigmoidForward(double x)
@@ -152,26 +174,42 @@ vector<double> GRU::matTanhB(const vector<double> &mat)
 void GRU::initCell()
 {
     Wy.resize(hDim);
+    dWy.resize(hDim);
     for(int i=0;i<hDim;i++)
+    {
         Wy[i].resize(yDim);
+        dWy[i].resize(yDim);
+    }
     Wr.resize(xDim);
-    for(int i=0;i<xDim;i++)
-        Wr[i].resize(hDim);
-    Ur.resize(hDim);
-    for(int i=0;i<hDim;i++)
-        Ur[i].resize(hDim);
+    dWr.resize(xDim);
     W.resize(xDim);
-    for(int i=0;i<xDim;i++)
-        W[i].resize(hDim);
-    U.resize(hDim);
-    for(int i=0;i<hDim;i++)
-        U[i].resize(hDim);
+    dW.resize(xDim);
     Wz.resize(xDim);
+    dWz.resize(xDim);
     for(int i=0;i<xDim;i++)
+    {
+        Wr[i].resize(hDim);
+        dWr[i].resize(hDim);
+        W[i].resize(hDim);
+        dW[i].resize(hDim);
         Wz[i].resize(hDim);
+        dWz[i].resize(hDim);
+    }
+    Ur.resize(hDim);
+    dUr.resize(hDim);
+    U.resize(hDim);
+    dU.resize(hDim);
     Uz.resize(hDim);
+    dUz.resize(hDim);
     for(int i=0;i<hDim;i++)
+    {
+        Ur[i].resize(hDim);
+        dUr[i].resize(hDim);
+        U[i].resize(hDim);
+        dU[i].resize(hDim);
         Uz[i].resize(hDim);
+        dUz[i].resize(hDim);
+    }
 
     rValue.resize(uNum+1);
     for(int i=0;i<uNum+1;i++)
@@ -188,6 +226,10 @@ void GRU::initCell()
     yValue.resize(uNum);
     for(int i=0;i<uNum;i++)
         yValue[i].resize(hDim);
+    delta_r_Next.resize(hDim);
+    delta_z_Next.resize(hDim);
+    delta_h_Next.resize(hDim);
+    delta_Next.resize(hDim);
 }
 
 // 初始化值
@@ -195,7 +237,10 @@ void GRU::initCellValue()
 {
     for(uint i=0;i<Wy.size();i++)
         for(uint j=0;j<Wy[0].size();j++)
+        {
             Wy[i][j] = getRandomValue();
+            dWy[i][j] = 0.0;
+        }
     for(uint i=0;i<Ur.size();i++)
     {
         for(uint j=0;j<Ur[0].size();j++)
@@ -203,6 +248,9 @@ void GRU::initCellValue()
             Ur[i][j] = getRandomValue();
             U[i][j] = getRandomValue();
             Uz[i][j] = getRandomValue();
+            dUr[i][j] = 0.0;
+            dU[i][j] = 0.0;
+            dUz[i][j] = 0.0;
         }
     }
     for(uint i=0;i<Wr.size();i++)
@@ -212,6 +260,9 @@ void GRU::initCellValue()
             Wr[i][j] = getRandomValue();
             W[i][j] = getRandomValue();
             Wz[i][j] = getRandomValue();
+            dWr[i][j] = 0.0;
+            dW[i][j] = 0.0;
+            dWz[i][j] = 0.0;
         }
     }
     for(uint i=0;i<rValue.size();i++)
@@ -228,6 +279,10 @@ void GRU::initCellValue()
     {
         yValue[i].assign(yValue[0].size(),0.0);
     }
+    delta_r_Next.assign(hDim,0.0);
+    delta_z_Next.assign(hDim,0.0);
+    delta_h_Next.assign(hDim,0.0);
+    delta_Next.assign(hDim,0.0);
 }
 
 // 获取[-1,1]随机数
@@ -251,7 +306,7 @@ vector<vector<double> > operator +(const vector<vector<double> > &mat1, const ve
     else
     {
         output.resize(mat1.size());
-        for(uint i=0;i<mat1[0].size();i++)
+        for(uint i=0;i<mat1.size();i++)
             output[i].resize(mat1[0].size());
         for(uint i=0;i<mat1.size();i++)
         {
@@ -495,7 +550,7 @@ vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2
     vector<double> output;
     if(mat1.size() != mat2.size())
     {
-        cout << "Error in 1D & 1D matrixSub!" << endl;
+        cout << "Error in 1D & 1D matrixAdd!" << endl;
         output.resize(1);
         output[0] = -1;
         return output;
@@ -507,4 +562,106 @@ vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2
             output[i] = mat1[i]+mat2[i];
         return output;
     }
+}
+
+// 向量减法，未单元测试
+vector<double> operator -(const vector<double> &mat1, const vector<double> &mat2)
+{
+    vector<double> output;
+    if(mat1.size() != mat2.size())
+    {
+        cout << "Error in 1D & 1D matrixSub!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+    else
+    {
+        output.resize(mat1.size());
+        for(uint i=0;i<mat1.size();i++)
+            output[i] = mat1[i]-mat2[i];
+        return output;
+    }
+}
+
+// 三向量点乘，未单元测试
+vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2, const vector<double> &mat3)
+{
+    vector<double> output;
+    if(mat1.size() == mat2.size() && mat1.size() == mat3.size())
+    {
+        output.resize(mat1.size());
+        for(uint i=0;i<mat1.size();i++)
+            output[i] = mat1[i]*mat2[i]*mat3[i];
+        return output;
+    }
+    else
+    {
+        cout << "Error in 1D & 1D & 1D matrixDotMul!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+}
+
+// 向量转置，未单元测试
+vector<vector<double> > matT(const vector<double> &src)
+{
+    vector<vector<double>> dst(src.size());
+    for(uint i=0;i<src.size();i++)
+        dst[i].resize(1);
+    for(uint i=0;i<src.size();i++)
+    {
+            dst[i][0] = src[i];
+    }
+    return dst;
+}
+
+// 向量转置，未单元测试
+vector<double> matT(const vector<vector<double> > &src, int type)
+{
+    vector<double> dst(src.size());
+    for(uint i=0;i<src.size();i++)
+    {
+            dst[i] = src[i][0];
+    }
+    return dst;
+}
+
+// 矩阵和向量（或常数）相乘，未单元测试
+vector<vector<double> > operator *(const vector<vector<double> > &mat1, const vector<double> &mat2)
+{
+    vector<vector<double>> output;
+    if(mat2.size() == 1)
+    {
+        output.resize(mat1.size());
+        for(uint i=0;i<mat1.size();i++)
+            output[i].resize(mat1[0].size());
+        for(uint i=0;i<mat1.size();i++)
+            for(uint j=0;j<mat1[0].size();j++)
+                output[i][j] = mat1[i][j]*mat2[0];
+        return output;
+    }
+    else
+    {
+        if(mat1[0].size() != 1)
+        {
+            cout << "Error in 2D & 1D matrixMul!" << endl;
+            output.resize(1);
+            output[0].resize(1);
+            output[0][0] = -1;
+            return output;
+        }
+        else
+        {
+            output.resize(mat1.size());
+            for(uint i=0;i<mat1.size();i++)
+                output[i].resize(mat2.size());
+            for(uint i=0;i<mat1.size();i++)
+                for(uint j=0;j<mat1[0].size();j++)
+                    output[i][j] = mat1[i][0]*mat2[j];
+            return output;
+        }
+    }
+
 }

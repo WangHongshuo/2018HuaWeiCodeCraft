@@ -11,14 +11,19 @@ vector<vector<double>> operator +(const vector<vector<double>> &mat1, const vect
 vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> operator +(double a, const vector<vector<double>> &mat2);
 vector<vector<double>> operator -(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
+vector<double> operator -(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> operator -(double a, const vector<vector<double>> &mat2);
 vector<double> operator -(double a, const vector<double> &mat2);
 vector<vector<double>> matDotDiv(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> operator *(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
+vector<vector<double> > operator *(const vector<vector<double> > &mat1, const vector<double> &mat2);
 vector<double> operator *(const vector<double> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> matDotMul(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2);
+vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2, const vector<double> &mat3);
 vector<vector<double>> matT(const vector<vector<double> > &src);
+vector<vector<double>> matT(const vector<double> &src);
+vector<double> matT(const vector<vector<double> > &src,int type);
 
 typedef unsigned int uint;
 
@@ -70,6 +75,25 @@ private:
     vector<vector<double>> hBarValue;
     vector<vector<double>> hValue;
     vector<vector<double>> yValue;
+
+    vector<double> delta_r_Next;
+    vector<double> delta_z_Next;
+    vector<double> delta_h_Next;
+    vector<double> delta_Next;
+
+    vector<vector<double>> dWy;
+    vector<vector<double>> dWr;
+    vector<vector<double>> dUr;
+    vector<vector<double>> dW;
+    vector<vector<double>> dU;
+    vector<vector<double>> dWz;
+    vector<vector<double>> dUz;
+
+    vector<double> delta_y;
+    vector<double> delta_h;
+    vector<double> delta_z;
+    vector<double> delta_r;
+    vector<double> delta;
 
 
 };
