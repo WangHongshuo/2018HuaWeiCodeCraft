@@ -11,10 +11,11 @@ GRU::~GRU()
 
 }
 
-void GRU::setDims(int hidenDims, int unitNums)
+void GRU::setDims(int hidenDims, int trainNums, int predictNums)
 {
     hDim = hidenDims;
-    uNum = unitNums;
+    uNum = trainNums+predictNums;
+    pNum = predictNums;
 }
 
 void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double _step, int _iterateNum)
@@ -35,6 +36,8 @@ void GRU::init()
 
 void GRU::startTrainning()
 {
+    scaleX = squrshTo(x,0.0,1.0);
+    scaleY = squrshTo(y,0.0,1.0);
     x = matT(x);
     y = matT(y);
     for(int loop=0;loop<iterateNum;loop++)
@@ -45,16 +48,16 @@ void GRU::startTrainning()
         zValue[0] = matSigmoidF(x[0]*Wz);
         hValue[0] = matDotMul(zValue[0],hBarValue[0]);
         yValue[0] = matSigmoidF(hValue[0]*Wy);
-        for(int t=1;t<uNum;t++)
+        for(int t=1;t<uNum-pNum;t++)
         {
             rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
-            hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1])))*U);
+            hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1]))*U));
             zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
             hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
             yValue[t] = matSigmoidF(hValue[t]*Wy);
         }
         // Backward
-        for(int t=uNum-1;t>=2;t--)
+        for(int t=uNum-pNum-1;t>=2;t--)
         {
             delta_y = matDotMul((yValue[t]-y[t]),matSigmoidB(yValue[t]));
             delta_h = delta_y*matT(Wy)+delta_z_Next*matT(Uz)+matDotMul(delta_Next*matT(U),rValue[t+1])+delta_r_Next*matT(Ur)+
@@ -97,10 +100,62 @@ void GRU::startTrainning()
         U  = U-matDotMul(step,dU);
         Wz = Wz-matDotMul(step,dWz);
         Uz = Uz-matDotMul(step,dUz);
-
-        error = getError(yValue,y);
+        // 存储最小error下的参数
+        if(loop == 1)
+        {
+            error = errorTemp = getError(yValue,y);
+            store[0] = Wr;
+            store[1] = Ur;
+            store[2] = W;
+            store[3] = U;
+            store[4] = Wz;
+            store[5] = Uz;
+            store[6] = Wy;
+        }
+        else
+        {
+             error = getError(yValue,y);
+             if(error < errorTemp)
+             {
+                 errorTemp = error;
+                 store[0] = Wr;
+                 store[1] = Ur;
+                 store[2] = W;
+                 store[3] = U;
+                 store[4] = Wz;
+                 store[5] = Uz;
+                 store[6] = Wy;
+             }
+        }
         cout << "Error: " << error << endl;
+        if(isnan(error))
+        {
+            break;
+        }
     }
+    Wr = store[0];
+    Ur = store[1];
+    W = store[2];
+    U = store[3];
+    Wz = store[4];
+    Uz = store[5];
+    Wy = store[6];
+    // predict
+    rValue[0] = matSigmoidF(x[0]*Wr);
+    hBarValue[0] = matTanhF(x[0]*W);
+    zValue[0] = matSigmoidF(x[0]*Wz);
+    hValue[0] = matDotMul(zValue[0],hBarValue[0]);
+    yValue[0] = matSigmoidF(hValue[0]*Wy);
+    for(int t=1;t<uNum;t++)
+    {
+        rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
+        hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1])))*U);
+        zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
+        hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+        yValue[t] = matSigmoidF(hValue[t]*Wy);
+    }
+    int a = 1;
+
 }
 
 double GRU::sigmoidForward(double x)
@@ -108,9 +163,9 @@ double GRU::sigmoidForward(double x)
     return 1.0/(1.0+exp(-x));
 }
 
-double GRU::sigmoidBackWard(double x)
+double GRU::sigmoidBackward(double x)
 {
-    return sigmoidForward(x)/(1.0-sigmoidForward(x));
+    return x*(1.0-x);
 }
 
 vector<vector<double> > GRU::matSigmoidF(const vector<vector<double> > &mat)
@@ -139,7 +194,7 @@ vector<vector<double> > GRU::matSigmoidB(const vector<vector<double> > &mat)
         output[i].resize(mat[0].size());
     for(uint i=0;i<mat.size();i++)
         for(uint j=0;j<mat[0].size();j++)
-            output[i][j] = sigmoidBackWard(mat[i][j]);
+            output[i][j] = sigmoidBackward(mat[i][j]);
     return output;
 }
 
@@ -147,7 +202,7 @@ vector<double> GRU::matSigmoidB(const vector<double> &mat)
 {
     vector<double> output(mat.size());
     for(uint i=0;i<mat.size();i++)
-            output[i] = sigmoidBackWard(mat[i]);
+            output[i] = sigmoidBackward(mat[i]);
     return output;
 }
 
@@ -158,7 +213,7 @@ double GRU::tanhForward(double x)
 
 double GRU::tanhBackward(double x)
 {
-    return 1.0-pow(tanhForward(x),2);
+    return 1.0-pow(x,2);
 }
 
 vector<vector<double> > GRU::matTanhF(const vector<vector<double> > &mat)
@@ -202,6 +257,7 @@ vector<double> GRU::matTanhB(const vector<double> &mat)
 // 分配空间
 void GRU::initCell()
 {
+    store.resize(7);
     Wy.resize(hDim);
     dWy.resize(hDim);
     for(int i=0;i<hDim;i++)
@@ -254,7 +310,7 @@ void GRU::initCell()
         hValue[i].resize(hDim);
     yValue.resize(uNum);
     for(int i=0;i<uNum;i++)
-        yValue[i].resize(hDim);
+        yValue[i].resize(yDim);
     delta_r_Next.resize(hDim);
     delta_z_Next.resize(hDim);
     delta_h_Next.resize(hDim);
@@ -267,16 +323,16 @@ void GRU::initCellValue()
     for(uint i=0;i<Wy.size();i++)
         for(uint j=0;j<Wy[0].size();j++)
         {
-            Wy[i][j] = getRandomValue();
+            Wy[i][j] = 0.5;
             dWy[i][j] = 0.0;
         }
     for(uint i=0;i<Ur.size();i++)
     {
         for(uint j=0;j<Ur[0].size();j++)
         {
-            Ur[i][j] = getRandomValue();
-            U[i][j] = getRandomValue();
-            Uz[i][j] = getRandomValue();
+            Ur[i][j] = 0.5;
+            U[i][j] = 0.5;
+            Uz[i][j] = 0.5;
             dUr[i][j] = 0.0;
             dU[i][j] = 0.0;
             dUz[i][j] = 0.0;
@@ -286,9 +342,9 @@ void GRU::initCellValue()
     {
         for(uint j=0;j<Wr[0].size();j++)
         {
-            Wr[i][j] = getRandomValue();
-            W[i][j] = getRandomValue();
-            Wz[i][j] = getRandomValue();
+            Wr[i][j] = 0.5;
+            W[i][j] = 0.5;
+            Wz[i][j] = 0.5;
             dWr[i][j] = 0.0;
             dW[i][j] = 0.0;
             dWz[i][j] = 0.0;
@@ -340,9 +396,32 @@ double GRU::getError(vector<vector<double> > &fit, vector<vector<double> > &targ
                 output += pow(temp,2);
             }
         }
-        output = sqrt(output)/2.0;
+        output = sqrt(output)/double(yDim);
         return output;
     }
+}
+
+// 线性压缩数据到[a,b]之间
+double GRU::squrshTo(vector<vector<double>> &src, double a, double b)
+{
+    double MAX_VALUE = src[0][0];
+    double n = b-a;
+    for(uint i=0;i<src.size();i++)
+    {
+        for(uint j=0;j<src[0].size();j++)
+        {
+            if(MAX_VALUE < src[i][j])
+                MAX_VALUE = src[i][j];
+        }
+    }
+    for(uint i=0;i<src.size();i++)
+    {
+        for(uint j=0;j<src[0].size();j++)
+        {
+            src[i][j] = src[i][j]/MAX_VALUE*n+a;
+        }
+    }
+    return MAX_VALUE/n;
 }
 
 // 矩阵加法，只进行过一次单元测试
@@ -730,4 +809,53 @@ vector<vector<double> > matDotMul(double a, const vector<vector<double> > &mat2)
         for(uint j=0;j<mat2[0].size();j++)
             output[i][j] = mat2[i][j]*a;
     return output;
+}
+
+// 简化二维vector为一维，未单元测试
+vector<double> autoFit(const vector<vector<double> > &mat1)
+{
+    vector<double> output;
+    if(mat1.size() == 1)
+    {
+        output.resize(mat1[0].size());
+        for(uint i=0;i<mat1[0].size();i++)
+            output[i] = mat1[0][i];
+        return output;
+    }
+    else
+    {
+        cout << "Error in autoFit!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+}
+
+// 只包含一个元素的向量和另一个向量相乘，未单元测试
+vector<double> operator *(const vector<double> &mat1, const vector<double> &mat2)
+{
+    vector<double> output;
+    if(mat1.size() != 1 && mat2.size()!= 1)
+    {
+        cout << "Error in 1 obj * 1 vector!" << endl;
+        output.resize(1);
+        output[0] = -1;
+        return output;
+    }
+    else
+    {
+        if(mat1.size() == 1)
+        {
+            output.resize(mat2.size());
+            for(uint i=0;i<mat2.size();i++)
+                output[i] = mat1[0]*mat2[i];
+        }
+        else
+        {
+            output.resize(mat1.size());
+            for(uint i=0;i<mat1.size();i++)
+                output[i] = mat1[i]*mat2[0];
+        }
+        return output;
+    }
 }

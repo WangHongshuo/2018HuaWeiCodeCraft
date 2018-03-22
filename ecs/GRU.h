@@ -4,6 +4,7 @@
 #include <time.h>
 #include <vector>
 #include <math.h>
+#include <float.h>
 
 using namespace std;
 
@@ -18,6 +19,7 @@ vector<vector<double>> matDotDiv(const vector<vector<double>> &mat1, const vecto
 vector<vector<double>> operator *(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double> > operator *(const vector<vector<double> > &mat1, const vector<double> &mat2);
 vector<double> operator *(const vector<double> &mat1, const vector<vector<double>> &mat2);
+vector<double> operator *(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> matDotMul(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> matDotMul(double a, const vector<vector<double>> &mat2);
 vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2);
@@ -25,6 +27,7 @@ vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2,
 vector<vector<double>> matT(const vector<vector<double> > &src);
 vector<vector<double>> matT(const vector<double> &src);
 vector<double> matT(const vector<vector<double> > &src,int type);
+vector<double> autoFit(const vector<vector<double>> &mat1);
 
 typedef unsigned int uint;
 
@@ -33,13 +36,13 @@ class GRU
 public:
     GRU();
     ~GRU();
-    void setDims(int hidenDims, int unitNums);
+    void setDims(int hidenDims, int trainNums, int predictNums);
     void setData(vector<vector<double>> &X, vector<vector<double>> &Y, double _step, int _iterateNum);
     void init();
     void startTrainning();
 
     double sigmoidForward(double x);
-    double sigmoidBackWard(double x);
+    double sigmoidBackward(double x);
     vector<vector<double>> matSigmoidF(const vector<vector<double> > &mat);
     vector<double> matSigmoidF(const vector<double> &mat);
     vector<vector<double>> matSigmoidB(const vector<vector<double>> &mat);
@@ -59,13 +62,18 @@ private:
     void initCellValue();
     double getRandomValue();
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
+    double squrshTo(vector<vector<double> > &src, double a, double b);
     int uNum;
     int xDim;
     int yDim;
     int hDim;
+    int pNum;
     int iterateNum = -1;
     double step = 0.0;
     double error = 0.0;
+    double errorTemp = 0.0;
+    double scaleX = 0.0;
+    double scaleY = 0.0;
 
     vector<vector<double>> Wy;
     vector<vector<double>> Wr;
@@ -99,6 +107,8 @@ private:
     vector<double> delta_z;
     vector<double> delta_r;
     vector<double> delta;
+
+    vector<vector<vector<double>>> store;
 
 
 };

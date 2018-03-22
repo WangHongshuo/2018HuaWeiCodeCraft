@@ -654,18 +654,22 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // 组建训练数据,索引从0开始
     vector<vector<double>> x(1);
     for(int i=0;i<1;i++)
-        x[i].resize(trainDataDayCount);
+        x[i].resize(trainDataDayCount+predictDaysCount);
     vector<vector<double>> y(1);
     for(int i=0;i<1;i++)
-        y[i].resize(trainDataDayCount);
-    for(int i=0;i<trainDataDayCount;i++)
+        y[i].resize(trainDataDayCount+predictDaysCount);
+    y[0].assign(y[0].size(),0.0);
+    for(uint i=0;i<y[0].size();i++)
     {
         x[0][i] = i+1;
+    }
+    for(int i=0;i<trainDataDayCount;i++)
+    {
         y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[1]];
     }
     GRU gru;
-    gru.setDims(1,trainDataDayCount);
-    gru.setData(x,y,0.001,100);
+    gru.setDims(16,trainDataDayCount,predictDaysCount);
+    gru.setData(x,y,0.001,5000);
     gru.init();
     gru.startTrainning();
 
