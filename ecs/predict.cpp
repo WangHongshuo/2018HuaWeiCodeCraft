@@ -664,8 +664,8 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[1]];
     }
     GRU gru;
-    gru.setDims(16,trainDataDayCount);
-    gru.setData(x,y);
+    gru.setDims(1,trainDataDayCount);
+    gru.setData(x,y,0.001,100);
     gru.init();
     gru.startTrainning();
 

@@ -17,12 +17,14 @@ void GRU::setDims(int hidenDims, int unitNums)
     uNum = unitNums;
 }
 
-void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y)
+void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double _step, int _iterateNum)
 {
     x = X;
     y = Y;
     xDim = x.size();
     yDim = y.size();
+    step = _step;
+    iterateNum = _iterateNum;
 }
 
 void GRU::init()
@@ -35,42 +37,69 @@ void GRU::startTrainning()
 {
     x = matT(x);
     y = matT(y);
-    // Forward
-    rValue[0] = matSigmoidF(x[0]*Wr);
-    hBarValue[0] = matTanhF(x[0]*W);
-    zValue[0] = matSigmoidF(x[0]*Wz);
-    hValue[0] = matDotMul(zValue[0],hBarValue[0]);
-    yValue[0] = matSigmoidF(hValue[0]*Wy);
-    for(int t=1;t<uNum;t++)
+    for(int loop=0;loop<iterateNum;loop++)
     {
-        rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
-        hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1])))*U);
-        zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
-        hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
-        yValue[t] = matSigmoidF(hValue[t]*Wy);
-    }
-    // Backward
-    for(int t=uNum-1;t>=2;t--)
-    {
+        // Forward
+        rValue[0] = matSigmoidF(x[0]*Wr);
+        hBarValue[0] = matTanhF(x[0]*W);
+        zValue[0] = matSigmoidF(x[0]*Wz);
+        hValue[0] = matDotMul(zValue[0],hBarValue[0]);
+        yValue[0] = matSigmoidF(hValue[0]*Wy);
+        for(int t=1;t<uNum;t++)
+        {
+            rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
+            hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1])))*U);
+            zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
+            hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+            yValue[t] = matSigmoidF(hValue[t]*Wy);
+        }
+        // Backward
+        for(int t=uNum-1;t>=2;t--)
+        {
+            delta_y = matDotMul((yValue[t]-y[t]),matSigmoidB(yValue[t]));
+            delta_h = delta_y*matT(Wy)+delta_z_Next*matT(Uz)+matDotMul(delta_Next*matT(U),rValue[t+1])+delta_r_Next*matT(Ur)+
+                    matDotMul(delta_h_Next,(1-zValue[t+1]));
+            delta_z = matDotMul(delta_h,(hBarValue[t]-hValue[t-1]),matSigmoidB(zValue[t]));
+            delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
+            delta_r = matDotMul(hValue[t-1],(matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]))*matT(U)),matSigmoidB(rValue[t]));
+
+            dWy = dWy+matT(hValue[t])*delta_y;
+            dWz = dWz+matT(x[t])*delta_z;
+            dUz = dUz+matT(hValue[t])*delta_z;
+            dW  = dW+matT(x[t])*delta;
+            dU  = dU+matT(matDotMul(rValue[t],hValue[t-1]))*delta;
+            dWr = dWr+matT(x[t])*delta_r;
+            dUr = dUr+matT(hValue[t-1])*delta_r;
+
+            delta_r_Next = delta_r;
+            delta_z_Next = delta_z;
+            delta_h_Next = delta_h;
+            delta_Next   = delta;
+        }
+
+        int t = 0;
         delta_y = matDotMul((yValue[t]-y[t]),matSigmoidB(yValue[t]));
         delta_h = delta_y*matT(Wy)+delta_z_Next*matT(Uz)+matDotMul(delta_Next*matT(U),rValue[t+1])+delta_r_Next*matT(Ur)+
                 matDotMul(delta_h_Next,(1-zValue[t+1]));
-        delta_z = matDotMul(delta_h,(hBarValue[t]-hValue[t-1]),matSigmoidB(zValue[t]));
+        delta_z = matDotMul(delta_h,hBarValue[t],matSigmoidB(zValue[t]));
         delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
-        delta_r = matDotMul(hValue[t-1],(matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]))*matT(U)),matSigmoidB(rValue[t]));
+        delta_r.assign(delta_r.size(),0.0);
 
         dWy = dWy+matT(hValue[t])*delta_y;
         dWz = dWz+matT(x[t])*delta_z;
-        dUz = dUz+matT(hValue[t])*delta_z;
         dW  = dW+matT(x[t])*delta;
-        dU  = dU+matT(matDotMul(rValue[t],hValue[t-1]))*delta;
         dWr = dWr+matT(x[t])*delta_r;
-        dUr = dUr+matT(hValue[t-1])*delta_r;
 
-        delta_r_Next = delta_r;
-        delta_z_Next = delta_z;
-        delta_h_Next = delta_h;
-        delta_Next   = delta;
+        Wy = Wy-matDotMul(step,dWy);
+        Wr = Wr-matDotMul(step,dWr);
+        Ur = Ur-matDotMul(step,dUr);
+        W  = W-matDotMul(step,dW);
+        U  = U-matDotMul(step,dU);
+        Wz = Wz-matDotMul(step,dWz);
+        Uz = Uz-matDotMul(step,dUz);
+
+        error = getError(yValue,y);
+        cout << "Error: " << error << endl;
     }
 }
 
@@ -291,6 +320,31 @@ double GRU::getRandomValue()
     return (rand()%1000/(double)1002)*2-1;
 }
 
+// 计算误差，未单元测试
+double GRU::getError(vector<vector<double> > &fit, vector<vector<double> > &target)
+{
+    double output = 0.0;
+    double temp;
+    if(fit.size() != target.size() || fit[0].size() != target[0].size())
+    {
+        cout << " Error in getError!";
+        return -1;
+    }
+    else
+    {
+        for(uint i=0;i<target.size();i++)
+        {
+            for(uint j=0;j<target[0].size();j++)
+            {
+                temp = fit[i][j]-target[i][j];
+                output += pow(temp,2);
+            }
+        }
+        output = sqrt(output)/2.0;
+        return output;
+    }
+}
+
 // 矩阵加法，只进行过一次单元测试
 vector<vector<double> > operator +(const vector<vector<double> > &mat1, const vector<vector<double> > &mat2)
 {
@@ -334,7 +388,7 @@ vector<vector<double> > operator -(const vector<vector<double> > &mat1, const ve
     else
     {
         output.resize(mat1.size());
-        for(uint i=0;i<mat1[0].size();i++)
+        for(uint i=0;i<mat1.size();i++)
             output[i].resize(mat1[0].size());
         for(uint i=0;i<mat1.size();i++)
         {
@@ -664,4 +718,16 @@ vector<vector<double> > operator *(const vector<vector<double> > &mat1, const ve
         }
     }
 
+}
+
+// 常数和矩阵点乘，未单元测试
+vector<vector<double> > matDotMul(double a, const vector<vector<double> > &mat2)
+{
+    vector<vector<double>> output(mat2.size());
+    for(uint i=0;i<mat2.size();i++)
+        output[i].resize(mat2[0].size());
+    for(uint i=0;i<mat2.size();i++)
+        for(uint j=0;j<mat2[0].size();j++)
+            output[i][j] = mat2[i][j]*a;
+    return output;
 }

@@ -19,6 +19,7 @@ vector<vector<double>> operator *(const vector<vector<double>> &mat1, const vect
 vector<vector<double> > operator *(const vector<vector<double> > &mat1, const vector<double> &mat2);
 vector<double> operator *(const vector<double> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> matDotMul(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
+vector<vector<double>> matDotMul(double a, const vector<vector<double>> &mat2);
 vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2);
 vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2, const vector<double> &mat3);
 vector<vector<double>> matT(const vector<vector<double> > &src);
@@ -33,7 +34,7 @@ public:
     GRU();
     ~GRU();
     void setDims(int hidenDims, int unitNums);
-    void setData(vector<vector<double>> &X,vector<vector<double>> &Y);
+    void setData(vector<vector<double>> &X, vector<vector<double>> &Y, double _step, int _iterateNum);
     void init();
     void startTrainning();
 
@@ -57,10 +58,14 @@ private:
     void initCell();
     void initCellValue();
     double getRandomValue();
+    double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
     int uNum;
     int xDim;
     int yDim;
     int hDim;
+    int iterateNum = -1;
+    double step = 0.0;
+    double error = 0.0;
 
     vector<vector<double>> Wy;
     vector<vector<double>> Wr;
