@@ -343,24 +343,24 @@ void GRU::initCellValue()
     for(uint i=0;i<Wy.size();i++)
         for(uint j=0;j<Wy[0].size();j++)
         {
-            Wy[i][j] = 0.5;
+            Wy[i][j] = getRandomValue();
         }
     for(uint i=0;i<Ur.size();i++)
     {
         for(uint j=0;j<Ur[0].size();j++)
         {
-            Ur[i][j] = 0.5;
-            U[i][j] = 0.5;
-            Uz[i][j] = 0.5;
+            Ur[i][j] = getRandomValue();
+            U[i][j] = getRandomValue();
+            Uz[i][j] = getRandomValue();
         }
     }
     for(uint i=0;i<Wr.size();i++)
     {
         for(uint j=0;j<Wr[0].size();j++)
         {
-            Wr[i][j] = 0.5;
-            W[i][j] = 0.5;
-            Wz[i][j] = 0.5;
+            Wr[i][j] = getRandomValue();
+            W[i][j] = getRandomValue();
+            Wz[i][j] = getRandomValue();
         }
     }
     for(uint i=0;i<rValue.size();i++)

@@ -652,36 +652,38 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
 void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
     // 组建训练数据,索引从0开始
-    vector<vector<double>> x(1);
-    for(int i=0;i<1;i++)
+    vector<vector<double>> x(2);
+    for(int i=0;i<2;i++)
         x[i].resize(trainDataDayCount+predictDaysCount);
-    vector<vector<double>> y(1);
-    for(int i=0;i<1;i++)
+    vector<vector<double>> y(serverInfo.flavorTypeCount);
+    for(uint i=0;i<y.size();i++)
+    {
         y[i].resize(trainDataDayCount+predictDaysCount);
-    y[0].assign(y[0].size(),0.0);
+        y[i].assign(y[0].size(),0.0);
+    }
     for(uint i=0;i<y[0].size();i++)
     {
         x[0][i] = i+1;
     }
-    for(int i=0;i<trainDataDayCount;i++)
+    x[1][0] = vTrainData[1].dayOfWeek;
+    for(uint i=1;i<y[0].size();i++)
     {
-        y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[1]];
+        x[1][i] = x[1][i-1]+1;
+        if(x[1][i] > 7)
+            x[1][i] = 1;
     }
+    for(int i=0;i<serverInfo.flavorTypeCount;i++)
+        for(int j=0;i<trainDataDayCount;i++)
+        {
+            y[i][j] = vTrainData[j+1].flavorCount[serverInfo.flavorType[i]];
+        }
     GRU gru;
+    // 隐藏层，训练天数，预测天数
     gru.setDims(16,trainDataDayCount,predictDaysCount);
-    gru.setData(x,y,0.001,5000);
+    // x输入，y目标，步长，迭代次数，停止迭代的误差
+    gru.setData(x,y,0.05,1000,0.5);
     gru.init();
     gru.startTrainning();
+    vector<vector<double>> predictY = gru.getPredictArray();
 
-    vector<double> a(2);
-    a[0] = 1;
-    a[1] = 2;
-    vector<vector<double>> b(2);
-    b[0].resize(2);
-    b[1].resize(2);
-    b[0][0] = b[0][1] = 1;
-    b[1][0] = b[1][1] = 2;
-    vector<double> c = a*b;
-    for(uint i=0;i<c.size();i++)
-        cout << c[i] << " ";
 }
