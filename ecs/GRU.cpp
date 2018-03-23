@@ -18,7 +18,7 @@ void GRU::setDims(int hidenDims, int trainNums, int predictNums)
     pNum = predictNums;
 }
 
-void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double _step, int _iterateNum)
+void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double _step, int _iterateNum, double _targetError)
 {
     x = X;
     y = Y;
@@ -26,6 +26,7 @@ void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double
     yDim = y.size();
     step = _step;
     iterateNum = _iterateNum;
+    targetError = _targetError;
 }
 
 void GRU::init()
@@ -42,7 +43,7 @@ void GRU::startTrainning()
     y = matT(y);
     for(int loop=0;loop<iterateNum;loop++)
     {
-        // Forward
+        // Forward，与matlab仿真前3循环一致
         rValue[0] = matSigmoidF(x[0]*Wr);
         hBarValue[0] = matTanhF(x[0]*W);
         zValue[0] = matSigmoidF(x[0]*Wz);
@@ -50,25 +51,29 @@ void GRU::startTrainning()
         yValue[0] = matSigmoidF(hValue[0]*Wy);
         for(int t=1;t<uNum-pNum;t++)
         {
-            rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
-            hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1]))*U));
-            zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
-            hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+            rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
+            hBarValue[t] = matTanhF(x[t]*W+(matDotMul(rValue[t],hValue[t-1]))*U);
+            zValue[t] = matSigmoidF(x[t]*Wz+hValue[t-1]*Uz);
+            hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
             yValue[t] = matSigmoidF(hValue[t]*Wy);
         }
-        // Backward
-        for(int t=uNum-pNum-1;t>=2;t--)
+
+        // Backward，与matlab仿真前3循环一致
+        clearBackwardTempValues();
+        for(int t=uNum-pNum-1;t>=1;t--)
         {
-            delta_y = matDotMul((yValue[t]-y[t]),matSigmoidB(yValue[t]));
-            delta_h = delta_y*matT(Wy)+delta_z_Next*matT(Uz)+matDotMul(delta_Next*matT(U),rValue[t+1])+delta_r_Next*matT(Ur)+
-                    matDotMul(delta_h_Next,(1-zValue[t+1]));
-            delta_z = matDotMul(delta_h,(hBarValue[t]-hValue[t-1]),matSigmoidB(zValue[t]));
+            delta_y = matDotMul(yValue[t]-y[t],matSigmoidB(yValue[t]));
+            delta_h = delta_y*matT(Wy) + delta_z_Next*matT(Uz) + matDotMul(delta_Next*matT(U),rValue[t+1]) +
+                      delta_r_Next*matT(Ur) + matDotMul(delta_h_Next,1-zValue[t+1]);
+            delta_z = matDotMul(delta_h,hBarValue[t]-hValue[t-1],matSigmoidB(zValue[t]));
             delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
-            delta_r = matDotMul(hValue[t-1],(matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]))*matT(U)),matSigmoidB(rValue[t]));
+            delta_r = matDotMul(hValue[t-1],
+                               (matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t])))*matT(U),
+                               matSigmoidB(rValue[t]));
 
             dWy = dWy+matT(hValue[t])*delta_y;
             dWz = dWz+matT(x[t])*delta_z;
-            dUz = dUz+matT(hValue[t])*delta_z;
+            dUz = dUz+matT(hValue[t-1])*delta_z;
             dW  = dW+matT(x[t])*delta;
             dU  = dU+matT(matDotMul(rValue[t],hValue[t-1]))*delta;
             dWr = dWr+matT(x[t])*delta_r;
@@ -80,67 +85,68 @@ void GRU::startTrainning()
             delta_Next   = delta;
         }
 
-        int t = 0;
-        delta_y = matDotMul((yValue[t]-y[t]),matSigmoidB(yValue[t]));
-        delta_h = delta_y*matT(Wy)+delta_z_Next*matT(Uz)+matDotMul(delta_Next*matT(U),rValue[t+1])+delta_r_Next*matT(Ur)+
-                matDotMul(delta_h_Next,(1-zValue[t+1]));
+        int t =0;
+        delta_y = matDotMul(yValue[t]-y[t],matSigmoidB(yValue[t]));
+        delta_h = delta_y*matT(Wy) + delta_z_Next*matT(Uz) + matDotMul(delta_Next*matT(U),rValue[t+1]) +
+                  delta_r_Next*matT(Ur) + matDotMul(delta_h_Next,1-zValue[t+1]);
         delta_z = matDotMul(delta_h,hBarValue[t],matSigmoidB(zValue[t]));
         delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
         delta_r.assign(delta_r.size(),0.0);
 
-        dWy = dWy+matT(hValue[t])*delta_y;
-        dWz = dWz+matT(x[t])*delta_z;
-        dW  = dW+matT(x[t])*delta;
-        dWr = dWr+matT(x[t])*delta_r;
+         dWy = dWy+matT(hValue[t])*delta_y;
+         dWz = dWz+matT(x[t])*delta_z;
+         dW  = dW+matT(x[t])*delta;
+         dWr = dWr+matT(x[t])*delta_r;
 
-        Wy = Wy-matDotMul(step,dWy);
-        Wr = Wr-matDotMul(step,dWr);
-        Ur = Ur-matDotMul(step,dUr);
-        W  = W-matDotMul(step,dW);
-        U  = U-matDotMul(step,dU);
-        Wz = Wz-matDotMul(step,dWz);
-        Uz = Uz-matDotMul(step,dUz);
-        // 存储最小error下的参数
-        if(loop == 1)
-        {
-            error = errorTemp = getError(yValue,y);
-            store[0] = Wr;
-            store[1] = Ur;
-            store[2] = W;
-            store[3] = U;
-            store[4] = Wz;
-            store[5] = Uz;
-            store[6] = Wy;
-        }
-        else
-        {
+         // Fix
+         Wy = Wy-step*dWy;
+         Wr = Wr-step*dWr;
+         Ur = Ur-step*dUr;
+         W  = W -step*dW;
+         U  = U -step*dU;
+         Wz = Wz-step*dWz;
+         Uz = Uz-step*dUz;
+
+         // 存储error最小下的参数
+         if(loop == 0)
+         {
+           error = minError = getError(yValue,y);
+           store[0] = Wy;
+           store[1] = Wr;
+           store[2] = Ur;
+           store[3] = W;
+           store[4] = U;
+           store[5] = Wz;
+           store[6] = Uz;
+         }
+         else
+         {
              error = getError(yValue,y);
-             if(error < errorTemp)
+             if(error < minError)
              {
-                 errorTemp = error;
-                 store[0] = Wr;
-                 store[1] = Ur;
-                 store[2] = W;
-                 store[3] = U;
-                 store[4] = Wz;
-                 store[5] = Uz;
-                 store[6] = Wy;
+                 minError = error;
+                 store[0] = Wy;
+                 store[1] = Wr;
+                 store[2] = Ur;
+                 store[3] = W;
+                 store[4] = U;
+                 store[5] = Wz;
+                 store[6] = Uz;
              }
-        }
-        cout << "Error: " << error << endl;
-        if(isnan(error))
-        {
-            break;
-        }
+         }
+         cout << "Error in loop " << loop << " : " << error << endl;
+         if(error < targetError)
+             break;
     }
-    Wr = store[0];
-    Ur = store[1];
-    W = store[2];
-    U = store[3];
-    Wz = store[4];
-    Uz = store[5];
-    Wy = store[6];
+
     // predict
+    Wy = store[0];
+    Wr = store[1];
+    Ur = store[2];
+    W  = store[3];
+    U  = store[4];
+    Wz = store[5];
+    Uz = store[6];
     rValue[0] = matSigmoidF(x[0]*Wr);
     hBarValue[0] = matTanhF(x[0]*W);
     zValue[0] = matSigmoidF(x[0]*Wz);
@@ -148,14 +154,15 @@ void GRU::startTrainning()
     yValue[0] = matSigmoidF(hValue[0]*Wy);
     for(int t=1;t<uNum;t++)
     {
-        rValue[t] = matSigmoidF((x[t]*Wr)+(hValue[t-1]*Ur));
-        hBarValue[t] = matTanhF(((x[t]*W)+(matDotMul(rValue[t],hValue[t-1])))*U);
-        zValue[t] = matSigmoidF((x[t]*Wz)+(hValue[t-1]*Uz));
-        hValue[t] = matDotMul((1-zValue[t]),hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+        rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
+        hBarValue[t] = matTanhF(x[t]*W+(matDotMul(rValue[t],hValue[t-1]))*U);
+        zValue[t] = matSigmoidF(x[t]*Wz+hValue[t-1]*Uz);
+        hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
         yValue[t] = matSigmoidF(hValue[t]*Wy);
     }
-    int a = 1;
-
+    // 恢复压缩的输出，并转置回矩阵
+    yValue = scaleY*yValue;
+    yValue = matT(yValue);
 }
 
 double GRU::sigmoidForward(double x)
@@ -254,6 +261,11 @@ vector<double> GRU::matTanhB(const vector<double> &mat)
     return output;
 }
 
+vector<vector<double> > GRU::getPredictArray()
+{
+    return yValue;
+}
+
 // 分配空间
 void GRU::initCell()
 {
@@ -311,20 +323,27 @@ void GRU::initCell()
     yValue.resize(uNum);
     for(int i=0;i<uNum;i++)
         yValue[i].resize(yDim);
+
     delta_r_Next.resize(hDim);
     delta_z_Next.resize(hDim);
     delta_h_Next.resize(hDim);
     delta_Next.resize(hDim);
+
+    delta_y.resize(yDim);
+    delta_h.resize(hDim);
+    delta_z.resize(hDim);
+    delta.resize(hDim);
+    delta_r.resize(hDim);
 }
 
 // 初始化值
 void GRU::initCellValue()
 {
+    srand(time(0));
     for(uint i=0;i<Wy.size();i++)
         for(uint j=0;j<Wy[0].size();j++)
         {
             Wy[i][j] = 0.5;
-            dWy[i][j] = 0.0;
         }
     for(uint i=0;i<Ur.size();i++)
     {
@@ -333,9 +352,6 @@ void GRU::initCellValue()
             Ur[i][j] = 0.5;
             U[i][j] = 0.5;
             Uz[i][j] = 0.5;
-            dUr[i][j] = 0.0;
-            dU[i][j] = 0.0;
-            dUz[i][j] = 0.0;
         }
     }
     for(uint i=0;i<Wr.size();i++)
@@ -345,9 +361,6 @@ void GRU::initCellValue()
             Wr[i][j] = 0.5;
             W[i][j] = 0.5;
             Wz[i][j] = 0.5;
-            dWr[i][j] = 0.0;
-            dW[i][j] = 0.0;
-            dWz[i][j] = 0.0;
         }
     }
     for(uint i=0;i<rValue.size();i++)
@@ -422,6 +435,30 @@ double GRU::squrshTo(vector<vector<double>> &src, double a, double b)
         }
     }
     return MAX_VALUE/n;
+}
+
+void GRU::clearBackwardTempValues()
+{
+    delta_r_Next.assign(delta_r_Next.size(),0.0);
+    delta_r_Next.assign(delta_z_Next.size(),0.0);
+    delta_h_Next.assign(delta_h_Next.size(),0.0);
+    delta_Next.assign(delta_Next.size(),0.0);
+    for(uint i=0;i<dWy.size();i++)
+    {
+        dWy[i].assign(dWy[0].size(),0.0);
+    }
+    for(uint i=0;i<dUr.size();i++)
+    {
+        dUr[i].assign(dUr[0].size(),0.0);
+        dU[i].assign(dU[0].size(),0.0);
+        dUz[i].assign(dUz[0].size(),0.0);
+    }
+    for(uint i=0;i<dWr.size();i++)
+    {
+        dWr[i].assign(dWr[0].size(),0.0);
+        dW[i].assign(dW[0].size(),0.0);
+        dWz[i].assign(dWz[0].size(),0.0);
+    }
 }
 
 // 矩阵加法，只进行过一次单元测试
@@ -791,7 +828,7 @@ vector<vector<double> > operator *(const vector<vector<double> > &mat1, const ve
             for(uint i=0;i<mat1.size();i++)
                 output[i].resize(mat2.size());
             for(uint i=0;i<mat1.size();i++)
-                for(uint j=0;j<mat1[0].size();j++)
+                for(uint j=0;j<mat2.size();j++)
                     output[i][j] = mat1[i][0]*mat2[j];
             return output;
         }
@@ -858,4 +895,16 @@ vector<double> operator *(const vector<double> &mat1, const vector<double> &mat2
         }
         return output;
     }
+}
+
+// 常数乘矩阵，未单元测试
+vector<vector<double> > operator *(double a, const vector<vector<double> > &mat2)
+{
+    vector<vector<double>> output(mat2.size());
+    for(uint i=0;i<mat2.size();i++)
+        output[i].resize(mat2[0].size());
+    for(uint i=0;i<mat2.size();i++)
+        for(uint j=0;j<mat2[0].size();j++)
+            output[i][j] = mat2[i][j]*a;
+    return output;
 }

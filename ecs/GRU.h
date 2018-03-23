@@ -11,22 +11,29 @@ using namespace std;
 vector<vector<double>> operator +(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> operator +(double a, const vector<vector<double>> &mat2);
+
 vector<vector<double>> operator -(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<double> operator -(const vector<double> &mat1, const vector<double> &mat2);
 vector<vector<double>> operator -(double a, const vector<vector<double>> &mat2);
 vector<double> operator -(double a, const vector<double> &mat2);
+
 vector<vector<double>> matDotDiv(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
+
 vector<vector<double>> operator *(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double> > operator *(const vector<vector<double> > &mat1, const vector<double> &mat2);
 vector<double> operator *(const vector<double> &mat1, const vector<vector<double>> &mat2);
 vector<double> operator *(const vector<double> &mat1, const vector<double> &mat2);
+vector<vector<double>> operator *(double a, const vector<vector<double>> &mat2);
+
 vector<vector<double>> matDotMul(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
 vector<vector<double>> matDotMul(double a, const vector<vector<double>> &mat2);
 vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2);
 vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2, const vector<double> &mat3);
+
 vector<vector<double>> matT(const vector<vector<double> > &src);
 vector<vector<double>> matT(const vector<double> &src);
 vector<double> matT(const vector<vector<double> > &src,int type);
+
 vector<double> autoFit(const vector<vector<double>> &mat1);
 
 typedef unsigned int uint;
@@ -37,7 +44,7 @@ public:
     GRU();
     ~GRU();
     void setDims(int hidenDims, int trainNums, int predictNums);
-    void setData(vector<vector<double>> &X, vector<vector<double>> &Y, double _step, int _iterateNum);
+    void setData(vector<vector<double>> &X, vector<vector<double>> &Y, double _step, int _iterateNum, double _targetError);
     void init();
     void startTrainning();
 
@@ -53,6 +60,7 @@ public:
     vector<double> matTanhF(const vector<double> &mat);
     vector<vector<double>> matTanhB(const vector<vector<double> > &mat);
     vector<double> matTanhB(const vector<double> &mat);
+    vector<vector<double>> getPredictArray();
 
     vector<vector<double>> x;
     vector<vector<double>> y;
@@ -63,6 +71,7 @@ private:
     double getRandomValue();
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
     double squrshTo(vector<vector<double> > &src, double a, double b);
+    void clearBackwardTempValues();
     int uNum;
     int xDim;
     int yDim;
@@ -70,10 +79,11 @@ private:
     int pNum;
     int iterateNum = -1;
     double step = 0.0;
+    double minError = 0.0;
     double error = 0.0;
-    double errorTemp = 0.0;
     double scaleX = 0.0;
     double scaleY = 0.0;
+    double targetError = 0.0;
 
     vector<vector<double>> Wy;
     vector<vector<double>> Wr;
@@ -105,8 +115,8 @@ private:
     vector<double> delta_y;
     vector<double> delta_h;
     vector<double> delta_z;
-    vector<double> delta_r;
     vector<double> delta;
+    vector<double> delta_r;
 
     vector<vector<vector<double>>> store;
 
