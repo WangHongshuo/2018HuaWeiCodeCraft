@@ -104,13 +104,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictVMCount += predictDataFlavorCount[i][1];
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "predict data count:  VM count: " << predictVMCount << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    cout << "predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -165,11 +165,11 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 //    cout << "Test output: " << endl;
 //    cout << strOutput;
 
-	// 需要输出的内容
+    // 需要输出的内容
     const char * result_file = strOutput.data();
 
-	// 直接调用输出文件的方法输出到指定文件中(ps请注意格式的正确性，如果有解，第一行只有一个数据；第二行为空；第三行开始才是具体的数据，数据之间用一个空格分隔开)
-	write_result(result_file, filename);
+    // 直接调用输出文件的方法输出到指定文件中(ps请注意格式的正确性，如果有解，第一行只有一个数据；第二行为空；第三行开始才是具体的数据，数据之间用一个空格分隔开)
+    write_result(result_file, filename);
 }
 
 // 加载info中的数据
@@ -651,16 +651,22 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
 void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
-    // 组建训练数据,索引从0开始
+    GRU gru;
+    // 隐藏层，训练天数，预测天数
+    gru.setDims(16,trainDataDayCount,predictDaysCount);
+
+    vector<vector<double>> predictY(serverInfo.flavorTypeCount);
+    for(int i=0;i<serverInfo.flavorTypeCount;i++)
+        predictY[i].resize(trainDataDayCount+predictDaysCount);
+
+    // 组建训练数据,索引从0开始，x只需建立一次
     vector<vector<double>> x(2);
     for(int i=0;i<2;i++)
         x[i].resize(trainDataDayCount+predictDaysCount);
-    vector<vector<double>> y(serverInfo.flavorTypeCount);
-    for(uint i=0;i<y.size();i++)
-    {
+    vector<vector<double>> y(1);
+    for(int i=0;i<1;i++)
         y[i].resize(trainDataDayCount+predictDaysCount);
-        y[i].assign(y[0].size(),0.0);
-    }
+    y[0].assign(y[0].size(),0.0);
     for(uint i=0;i<y[0].size();i++)
     {
         x[0][i] = i+1;
@@ -672,18 +678,29 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         if(x[1][i] > 7)
             x[1][i] = 1;
     }
-    for(int i=0;i<serverInfo.flavorTypeCount;i++)
-        for(int j=0;i<trainDataDayCount;i++)
+    // 循环训练所有数据
+    for(int h=1;h<=serverInfo.flavorTypeCount;h++)
+    {
+        for(int i=0;i<trainDataDayCount;i++)
         {
-            y[i][j] = vTrainData[j+1].flavorCount[serverInfo.flavorType[i]];
+            y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[h]];
         }
-    GRU gru;
-    // 隐藏层，训练天数，预测天数
-    gru.setDims(16,trainDataDayCount,predictDaysCount);
-    // x输入，y目标，步长，迭代次数，停止迭代的误差
-    gru.setData(x,y,0.05,1000,0.5);
-    gru.init();
-    gru.startTrainning();
-    vector<vector<double>> predictY = gru.getPredictArray();
-
+        // x输入，y目标，步长，迭代次数，停止迭代的误差
+        gru.setData(x,y,0.05,1000,0.5);
+        if(h == 1)
+            gru.initCell();
+        gru.initCellValue();
+        gru.startTrainning();
+        gru.getPredictArray(predictY[h-1]);
+    }
+    double temp;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        temp = 0.0;
+        for(int j=0;j<predictDaysCount;j++)
+        {
+           temp += predictY[i-1][trainDataDayCount+j];
+        }
+        predictArray[i][1] = ceil(temp);
+    }
 }

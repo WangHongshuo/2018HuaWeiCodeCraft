@@ -45,7 +45,8 @@ public:
     ~GRU();
     void setDims(int hidenDims, int trainNums, int predictNums);
     void setData(vector<vector<double>> &X, vector<vector<double>> &Y, double _step, int _iterateNum, double _targetError);
-    void init();
+    void initCell();
+    void initCellValue();
     void startTrainning();
 
     double sigmoidForward(double x);
@@ -60,14 +61,12 @@ public:
     vector<double> matTanhF(const vector<double> &mat);
     vector<vector<double>> matTanhB(const vector<vector<double> > &mat);
     vector<double> matTanhB(const vector<double> &mat);
-    vector<vector<double>> getPredictArray();
+    void getPredictArray(vector<double> &output);
 
     vector<vector<double>> x;
     vector<vector<double>> y;
 
 private:
-    void initCell();
-    void initCellValue();
     double getRandomValue();
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
     double squrshTo(vector<vector<double> > &src, double a, double b);

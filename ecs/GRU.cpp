@@ -29,12 +29,6 @@ void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double
     targetError = _targetError;
 }
 
-void GRU::init()
-{
-    initCell();
-    initCellValue();
-}
-
 void GRU::startTrainning()
 {
     scaleX = squrshTo(x,0.0,1.0);
@@ -134,7 +128,7 @@ void GRU::startTrainning()
                  store[6] = Uz;
              }
          }
-         cout << "Error in loop " << loop << " : " << error << endl;
+//         cout << "Error in loop " << loop << " : " << error << endl;
          if(error < targetError)
              break;
     }
@@ -160,9 +154,9 @@ void GRU::startTrainning()
         hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
         yValue[t] = matSigmoidF(hValue[t]*Wy);
     }
-    // 恢复压缩的输出，并转置回矩阵
+    // 恢复压缩的输出
+    cout << "Min Error is " << minError << endl;
     yValue = scaleY*yValue;
-    yValue = matT(yValue);
 }
 
 double GRU::sigmoidForward(double x)
@@ -261,9 +255,15 @@ vector<double> GRU::matTanhB(const vector<double> &mat)
     return output;
 }
 
-vector<vector<double> > GRU::getPredictArray()
+void GRU::getPredictArray(vector<double> &output)
 {
-    return yValue;
+    if(output.size() != yValue.size())
+    {
+        cout << "Error in return predict Y!" << endl;
+        return;
+    }
+    for(uint i=0;i<yValue.size();i++)
+        output[i] = yValue[i][0];
 }
 
 // 分配空间
