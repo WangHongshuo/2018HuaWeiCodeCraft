@@ -658,26 +658,36 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-            // 每个规格最多放一种，先从最大的放
-            for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
+            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+            // 就是要放满
+            bool isThisFlavorCanPushIn;
+            for(int i=MAX_FLAVOR_TYPE;i>0;i--)
             {
-                flavorType = serverInfo.flavorType[i];
-                if(server[SERVER_COUNT].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
-                        server[SERVER_COUNT].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                isThisFlavorCanPushIn = true;
+                while(isThisFlavorCanPushIn && !server[SERVER_COUNT].isFull)
                 {
-                    continue;
-                }
-                else
-                {
-                    server[SERVER_COUNT].usedCPU += FLAVOR[flavorType][0];
-                    server[SERVER_COUNT].usedMEM += FLAVOR[flavorType][1];
-                    server[SERVER_COUNT].flavorCount[flavorType]++;
-                    server[SERVER_COUNT].VMCount++;
-                    predictArray[i][1]++;
-                    predictVMCount++;
+                    flavorType = serverInfo.flavorType[i];
+                    if(server[SERVER_COUNT].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
+                            server[SERVER_COUNT].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                    {
+                        if(i > 1)
+                           isThisFlavorCanPushIn = false;
+                        else
+                            server[SERVER_COUNT].isFull = true;
+                    }
+                    else
+                    {
+                        server[SERVER_COUNT].usedCPU += FLAVOR[flavorType][0];
+                        server[SERVER_COUNT].usedMEM += FLAVOR[flavorType][1];
+                        server[SERVER_COUNT].flavorCount[flavorType]++;
+                        server[SERVER_COUNT].VMCount++;
+                        predictArray[i][1]++;
+                        predictVMCount++;
+                    }
                 }
             }
         }
+        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
     }
     predictPhyServerCount = SERVER_COUNT;
     cout << "DONE!";
