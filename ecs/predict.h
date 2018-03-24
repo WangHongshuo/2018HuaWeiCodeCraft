@@ -48,6 +48,7 @@ struct phyServer
     int usedCPU = 0;
     int usedMEM = 0;
     int flavorCount[16] = {0};
+    int VMCount = 0;
     bool isFull = false;
     phyServer() {}
 };
@@ -72,6 +73,6 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 void predictSimpleModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
 
-void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount);
+void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount);
 
 #endif

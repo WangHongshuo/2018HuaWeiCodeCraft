@@ -104,13 +104,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictVMCount += predictDataFlavorCount[i][1];
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "predict data count:  VM count: " << predictVMCount << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    cout << "predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -119,17 +119,17 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     allocateModel(server,predictDataFlavorCount,predictVMCount,serverInfo,predictPhyServerCount);
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "predicted phy server count: " << predictPhyServerCount << endl;
-//    for(int i=1;i<=predictPhyServerCount;i++)
-//    {
-//        cout << "Server " << i << " :" << endl;
-//        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
-//        {
-//            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
-//        }
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    cout << "predicted phy server count: " << predictPhyServerCount << endl;
+    for(int i=1;i<=predictPhyServerCount;i++)
+    {
+        cout << "Server " << i << " :" << endl;
+        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+        {
+            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
+        }
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -162,8 +162,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     }
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "Test output: " << endl;
-//    cout << strOutput;
+    cout << "Test output: " << endl;
+    cout << strOutput;
 
 	// 需要输出的内容
     const char * result_file = strOutput.data();
@@ -550,11 +550,12 @@ void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], i
 
 // 分配模型参数格式：物理服务器vector（方便扩充），预测结果数组，预测后的虚拟机总数，物理服务器信息参数，预测需要服务器数量
 //  predictArray[i][j]的i<MAX_FLAVOR_TYPE，server的index从1开始
-void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount )
+void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount )
 {
     int tPredictArray[16][2];
+    int tPredictVMCount = predictVMCount;
     memcpy(tPredictArray,predictArray,(16*2)*4);
-    if(predictVMCount > 0)
+    if(tPredictVMCount > 0)
         server.push_back(phyServer());
     int SERVER_COUNT = server.size()-1;
     int MAX_FLAVOR_TYPE = serverInfo.flavorTypeCount;
@@ -562,7 +563,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
     int MAX_MEM = serverInfo.MEMCount;
     int flavorType = 0, flavorCount, startServerIndex = 1;
     bool isContinuePut = true;
-    while(predictVMCount)
+    while(tPredictVMCount)
     {
         for(int i=MAX_FLAVOR_TYPE;i>0;i--)
         {
@@ -610,8 +611,9 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
                         server[k].usedCPU += FLAVOR[flavorType][0];
                         server[k].usedMEM += FLAVOR[flavorType][1];
                         server[k].flavorCount[flavorType]++;
+                        server[k].VMCount++;
                         flavorCount--;
-                        predictVMCount--;
+                        tPredictVMCount--;
                     }
                     tPredictArray[i][1] = flavorCount;
                     if(flavorCount == 0)
@@ -624,6 +626,56 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int pr
                 }
                 if(!isContinuePut)
                     break;
+            }
+        }
+    }
+
+    // 反向Chicken调整，服务器数量必须大于1
+    if(SERVER_COUNT > 1)
+    {
+        int maxCount = 0;
+        int temp;
+        // 计算末尾服务器中存放最多的Flavor和对应的数量
+        for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
+        {
+            temp = server[SERVER_COUNT].flavorCount[serverInfo.flavorType[i]];
+            if(temp > maxCount)
+            {
+                maxCount = temp;
+                flavorType = serverInfo.flavorType[i];
+            }
+        }
+        cout << maxCount << " " << flavorType << endl;
+        // 如果每种flavor的数量较小，删除，否则尝试放满
+        if(maxCount < 2)
+        {
+            for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
+            {
+                predictVMCount -= server[SERVER_COUNT].flavorCount[serverInfo.flavorType[i]];
+                predictArray[i][1] -=  server[SERVER_COUNT].flavorCount[serverInfo.flavorType[i]];
+            }
+            SERVER_COUNT--;
+        }
+        else
+        {
+            // 每个规格最多放一种，先从最大的放
+            for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
+            {
+                flavorType = serverInfo.flavorType[i];
+                if(server[SERVER_COUNT].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
+                        server[SERVER_COUNT].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                {
+                    continue;
+                }
+                else
+                {
+                    server[SERVER_COUNT].usedCPU += FLAVOR[flavorType][0];
+                    server[SERVER_COUNT].usedMEM += FLAVOR[flavorType][1];
+                    server[SERVER_COUNT].flavorCount[flavorType]++;
+                    server[SERVER_COUNT].VMCount++;
+                    predictArray[i][1]++;
+                    predictVMCount++;
+                }
             }
         }
     }
