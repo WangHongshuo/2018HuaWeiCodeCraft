@@ -38,36 +38,127 @@ void GRU::startTrainning()
     for(int loop=0;loop<iterateNum;loop++)
     {
         // Forward，与matlab仿真前3循环一致
-        rValue[0] = matSigmoidF(x[0]*Wr);
-        hBarValue[0] = matTanhF(x[0]*W);
-        zValue[0] = matSigmoidF(x[0]*Wz);
-        hValue[0] = matDotMul(zValue[0],hBarValue[0]);
-        yValue[0] = matSigmoidF(hValue[0]*Wy);
+
+        // rValue[0] = matSigmoidF(x[0]*Wr);
+        matMul(x[0],Wr,vTemp_1xh[0]);
+        matSigmoidF(vTemp_1xh[0],rValue[0]);
+
+        // hBarValue[0] = matTanhF(x[0]*W);
+        matMul(x[0],W,vTemp_1xh[0]);
+        matTanhF(vTemp_1xh[0],hBarValue[0]);
+
+        // zValue[0] = matSigmoidF(x[0]*Wz);
+        matMul(x[0],Wz,vTemp_1xh[0]);
+        matSigmoidF(vTemp_1xh[0],zValue[0]);
+
+        // hValue[0] = matDotMul(zValue[0],hBarValue[0]);
+        matDotMul(zValue[0],hBarValue[0],hValue[0]);
+
+        // yValue[0] = matSigmoidF(hValue[0]*Wy);
+        matMul(hValue[0],Wy,vTemp_1xy[0]);
+        matSigmoidF(vTemp_1xy[0],yValue[0]);
+
         for(int t=1;t<uNum-pNum;t++)
         {
-            rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
-            hBarValue[t] = matTanhF(x[t]*W+(matDotMul(rValue[t],hValue[t-1]))*U);
-            zValue[t] = matSigmoidF(x[t]*Wz+hValue[t-1]*Uz);
-            hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
-            yValue[t] = matSigmoidF(hValue[t]*Wy);
+            // rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
+            matMul(x[t],Wr,vTemp_1xh[0]);
+            matMul(hValue[t-1],Ur,vTemp_1xh[1]);
+            matAdd(vTemp_1xh[0],vTemp_1xh[1],vTemp_1xh[0]);
+            matSigmoidF(vTemp_1xh[0],rValue[t]);
+
+            // hBarValue[t] = matTanhF(x[t]*W+(matDotMul(rValue[t],hValue[t-1]))*U);
+            matDotMul(rValue[t],hValue[t-1],vTemp_1xh[0]);
+            matMul(vTemp_1xh[0],U,vTemp_1xh[1]);
+            matMul(x[t],W,vTemp_1xh[2]);
+            matAdd(vTemp_1xh[1],vTemp_1xh[2],vTemp_1xh[0]);
+            matTanhF(vTemp_1xh[0],hBarValue[t]);
+
+            // zValue[t] = matSigmoidF(x[t]*Wz+hValue[t-1]*Uz);
+            matMul(x[t],Wz,vTemp_1xh[0]);
+            matMul(hValue[t-1],Uz,vTemp_1xh[1]);
+            matAdd(vTemp_1xh[0],vTemp_1xh[1],vTemp_1xh[0]);
+            matSigmoidF(vTemp_1xh[0],zValue[t]);
+
+            // hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+            matSub(1,zValue[t],vTemp_1xh[0]);
+            matDotMul(vTemp_1xh[0],hValue[t-1],vTemp_1xh[0]);
+            matDotMul(zValue[t],hBarValue[t],vTemp_1xh[1]);
+            matAdd(vTemp_1xh[0],vTemp_1xh[1],hValue[t]);
+
+            // yValue[t] = matSigmoidF(hValue[t]*Wy);
+            matMul(hValue[t],Wy,vTemp_1xy[0]);
+            matSigmoidF(vTemp_1xy[0],yValue[t]);
         }
 
         // Backward，与matlab仿真前3循环一致
         clearBackwardTempValues();
         for(int t=uNum-pNum-1;t>=1;t--)
         {
-            delta_y = matDotMul(yValue[t]-y[t],matSigmoidB(yValue[t]));
-            delta_h = delta_y*matT(Wy) + delta_z_Next*matT(Uz) + matDotMul(delta_Next*matT(U),rValue[t+1]) +
-                      delta_r_Next*matT(Ur) + matDotMul(delta_h_Next,1-zValue[t+1]);
-            delta_z = matDotMul(delta_h,hBarValue[t]-hValue[t-1],matSigmoidB(zValue[t]));
-            delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
-            delta_r = matDotMul(hValue[t-1],
-                               (matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t])))*matT(U),
-                               matSigmoidB(rValue[t]));
+            // delta_y = matDotMul(yValue[t]-y[t],matSigmoidB(yValue[t]));
+            matSub(yValue[t],y[t],vTemp_1xy[0]);
+            matSigmoidB(yValue[t],vTemp_1xy[1]);
+            matDotMul(vTemp_1xy[0],vTemp_1xy[1],delta_y);
 
-            dWy = dWy+matT(hValue[t])*delta_y;
-            dWz = dWz+matT(x[t])*delta_z;
-            dUz = dUz+matT(hValue[t-1])*delta_z;
+            // delta_h = delta_y*matT(Wy) + delta_z_Next*matT(Uz) + matDotMul(delta_Next*matT(U),rValue[t+1]) +
+            //        delta_r_Next*matT(Ur) + matDotMul(delta_h_Next,1-zValue[t+1]);
+            matT(Wy,mTemp_yxh_1);
+            matMul(delta_y,mTemp_yxh_1,vTemp_1xh[0]);
+            matT(Uz,mTemp_hxh_1);
+            matMul(delta_z_Next,mTemp_hxh_1,vTemp_1xh[1]);
+            matT(Ur,mTemp_hxh_1);
+            matMul(delta_r_Next,mTemp_hxh_1,vTemp_1xh[2]);
+            matT(U,mTemp_hxh_1); // mTemp_hxh_1当前域为U的转置
+            matMul(delta_Next,mTemp_hxh_1,vTemp_1xh[3]);
+            matDotMul(vTemp_1xh[3],rValue[t+1],vTemp_1xh[3]);
+            matSub(1,zValue[t+1],vTemp_1xh[4]);
+            matDotMul(delta_h_Next,vTemp_1xh[4],vTemp_1xh[4]);
+            matAdd(vTemp_1xh,5,delta_h);
+
+            // delta_z = matDotMul(delta_h,hBarValue[t]-hValue[t-1],matSigmoidB(zValue[t]));
+            matSub(hBarValue[t],hValue[t-1],vTemp_1xh[0]);
+            matSigmoidB(zValue[t],vTemp_1xh[1]);
+            ptr_vTemp_1xh[0] = &vTemp_1xh[0];
+            ptr_vTemp_1xh[1] = &vTemp_1xh[1];
+            ptr_vTemp_1xh[2] = &delta_h;
+            matDotMul(ptr_vTemp_1xh,3,delta_z);
+
+            // delta   = matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t]));
+            matTanhB(hBarValue[t],vTemp_1xh[0]); // vTemp_1xh[0]当前为matTanhB
+            ptr_vTemp_1xh[0] = &delta_h;
+            ptr_vTemp_1xh[1] = &zValue[t];
+            ptr_vTemp_1xh[2] = &vTemp_1xh[0];
+            matDotMul(ptr_vTemp_1xh,3,delta);
+
+            // delta_r = matDotMul(hValue[t-1],
+            //        (matDotMul(delta_h,zValue[t],matTanhB(hBarValue[t])))*matT(U),
+            //        matSigmoidB(rValue[t]));
+            ptr_vTemp_1xh[0] = &delta_h;
+            ptr_vTemp_1xh[1] = &zValue[t];
+            ptr_vTemp_1xh[2] = &vTemp_1xh[0];
+            matDotMul(ptr_vTemp_1xh,3,vTemp_1xh[3]);
+            matMul(vTemp_1xh[3],mTemp_hxh_1,vTemp_1xh[4]);
+            matSigmoidB(rValue[t],vTemp_1xh[3]);
+            ptr_vTemp_1xh[0] = &hValue[t-1];
+            ptr_vTemp_1xh[1] = &vTemp_1xh[4];
+            ptr_vTemp_1xh[2] = &vTemp_1xh[3];
+            matDotMul(ptr_vTemp_1xh,3,delta_r);
+
+            // 减少转换次数
+            matT(hValue[t],vTemp_hx1_1);
+            matT(hValue[t-1],vTemp_hx1_2);
+            matT(x[t],vTemp_xx1);
+            // dWy = dWy+matT(hValue[t])*delta_y;
+            matMul(vTemp_hx1_1,delta_y,mTemp_hxy_1);
+            matAdd(dWy,mTemp_hxy_1,dWy);
+
+            // dWz = dWz+matT(x[t])*delta_z;
+            matMul(vTemp_xx1,delta_z,mTemp_xxh_1);
+            matAdd(dWz,mTemp_xxh_1,dWz);
+
+            // dUz = dUz+matT(hValue[t-1])*delta_z;
+            matMul(vTemp_hx1_2,delta_z,mTemp_hxh_1);
+            matAdd(dUz,mTemp_hxh_1,dUz);
+
             dW  = dW+matT(x[t])*delta;
             dU  = dU+matT(matDotMul(rValue[t],hValue[t-1]))*delta;
             dWr = dWr+matT(x[t])*delta_r;
@@ -207,6 +298,36 @@ vector<double> GRU::matSigmoidB(const vector<double> &mat)
     return output;
 }
 
+void GRU::matSigmoidF(const vector<double> &vec, vector<double> &vecOutput)
+{
+    if(vec.size() != vecOutput.size())
+    {
+        cout << "Size error in matSigmoidF, input: vec; output: vecOutput." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec.size();i++)
+            vecOutput[i] = sigmoidForward(vec[i]);
+    }
+}
+
+void GRU::matSigmoidB(const vector<double> &vec, vector<double> &vecOutput)
+{
+    if(vec.size() != vecOutput.size())
+    {
+        cout << "Size error in matSigmoidB, input: vec; output: vecOutput." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec.size();i++)
+            vecOutput[i] = sigmoidBackward(vec[i]);
+    }
+}
+
 double GRU::tanhForward(double x)
 {
     return 2.0/(1.0+exp(-2.0*x))-1.0;
@@ -253,6 +374,34 @@ vector<double> GRU::matTanhB(const vector<double> &mat)
     for(uint i=0;i<mat.size();i++)
             output[i] = tanhBackward(mat[i]);
     return output;
+}
+
+void GRU::matTanhF(const vector<double> &vec, vector<double> &vecOutput)
+{
+    if(vec.size() != vecOutput.size())
+    {
+        cout << "Size error in matTanF, input: vec; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    {
+        for(uint i=0;i<vec.size();i++)
+            vecOutput[i] = tanhForward(vec[i]);
+    }
+}
+
+void GRU::matTanhB(const vector<double> &vec, vector<double> &vecOutput)
+{
+    if(vec.size() != vecOutput.size())
+    {
+        cout << "Size error in matTanF, input: vec; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    {
+        for(uint i=0;i<vec.size();i++)
+            vecOutput[i] = tanhBackward(vec[i]);
+    }
 }
 
 void GRU::getPredictArray(vector<double> &output)
@@ -334,6 +483,39 @@ void GRU::initCell()
     delta_z.resize(hDim);
     delta.resize(hDim);
     delta_r.resize(hDim);
+
+    // Temp vector
+    vTemp_1xh.resize(5);
+    for(int i=0;i<5;i++)
+        vTemp_1xh[i].resize(hDim);
+    vTemp_1xy.resize(2);
+    for(int i=0;i<2;i++)
+        vTemp_1xy[i].resize(yDim);
+
+    mTemp_yxh_1.resize(yDim);
+    for(int i=0;i<yDim;i++)
+        mTemp_yxh_1[i].resize(hDim);
+    mTemp_hxh_1.resize(hDim);
+    for(int i=0;i<hDim;i++)
+        mTemp_hxh_1[i].resize(hDim);
+     ptr_vTemp_1xh.resize(5);
+     vTemp_hx1_1.resize(hDim);
+     vTemp_hx1_2.resize(hDim);
+     for(uint i=0;i<vTemp_hx1_1.size();i++)
+     {
+         vTemp_hx1_1[i].resize(1);
+         vTemp_hx1_2[i].resize(1);
+     }
+     vTemp_xx1.resize(xDim);
+     for(uint i=0;i<vTemp_xx1.size();i++)
+         vTemp_xx1[i].resize(1);
+     mTemp_hxy_1.resize(hDim);
+     for(uint i=0;i<mTemp_hxy_1.size();i++)
+         mTemp_hxy_1[i].resize(yDim);
+     mTemp_xxh_1.resize(xDim);
+     for(uint i=0;i<mTemp_xxh_1.size();i++)
+         mTemp_xxh_1[i].resize(hDim);
+
 }
 
 // 初始化值
@@ -343,24 +525,24 @@ void GRU::initCellValue()
     for(uint i=0;i<Wy.size();i++)
         for(uint j=0;j<Wy[0].size();j++)
         {
-            Wy[i][j] = getRandomValue();
+            Wy[i][j] = 0.5;
         }
     for(uint i=0;i<Ur.size();i++)
     {
         for(uint j=0;j<Ur[0].size();j++)
         {
-            Ur[i][j] = getRandomValue();
-            U[i][j] = getRandomValue();
-            Uz[i][j] = getRandomValue();
+            Ur[i][j] = 0.5;
+            U[i][j] = 0.5;
+            Uz[i][j] = 0.5;
         }
     }
     for(uint i=0;i<Wr.size();i++)
     {
         for(uint j=0;j<Wr[0].size();j++)
         {
-            Wr[i][j] = getRandomValue();
-            W[i][j] = getRandomValue();
-            Wz[i][j] = getRandomValue();
+            Wr[i][j] = 0.5;
+            W[i][j] = 0.5;
+            Wz[i][j] = 0.5;
         }
     }
     for(uint i=0;i<rValue.size();i++)
@@ -907,4 +1089,255 @@ vector<vector<double> > operator *(double a, const vector<vector<double> > &mat2
         for(uint j=0;j<mat2[0].size();j++)
             output[i][j] = mat2[i][j]*a;
     return output;
+}
+
+// 向量乘矩阵输出向量，未单元测试
+void matMul(const vector<double> &vec, const vector<vector<double> > &mat, vector<double> &vecOutput)
+{
+    if(vec.size() != mat.size() || mat[0].size() != vecOutput.size())
+    {
+        cout << "Size error in matrixMul, input: vec, mat; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    else if(&vec == &vecOutput)
+    {
+        cout << "Error in matrixMul, input and output have same address." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        vecOutput.assign(vecOutput.size(),0.0);
+        for(uint i=0;i<mat[0].size();i++)
+        {
+            for(uint j=0;j<vec.size();j++)
+            {
+                vecOutput[i] += (vec[j]*mat[j][i]);
+            }
+        }
+    }
+}
+
+// 向量与向量点乘，未单元测试
+void matDotMul(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput)
+{
+    if(vec1.size() != vec2.size() || vec1.size() != vecOutput.size())
+    {
+        cout << "Size error in  matDotMul, input: vec, vec; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec1.size();i++)
+            vecOutput[i] = vec1[i]*vec2[i];
+    }
+}
+
+// 向量与向量相加，未单元测试
+void matAdd(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput)
+{
+    if(vec1.size() != vec2.size() || vec1.size() != vecOutput.size())
+    {
+        cout << "Size error in matAdd, input: vec, vec; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec1.size();i++)
+            vecOutput[i] = vec1[i]+vec2[i];
+    }
+}
+
+// 常数与向量相减，未单元测试
+void matSub(double a, const vector<double> &vec, vector<double> &vecOutput)
+{
+    if(vec.size() != vecOutput.size())
+    {
+        cout << "Size error in matSub, input: double, vec; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec.size();i++)
+            vecOutput[i] = a-vec[i];
+    }
+}
+
+// 向量相减，未单元测试
+void matSub(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput)
+{
+    if(vec1.size() != vec2.size() || vec1.size() != vecOutput.size())
+    {
+        cout << "Size error in matSub, input: vec, vec; output: vec." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec1.size();i++)
+            vecOutput[i] = vec1[i]-vec2[i];
+    }
+}
+
+// 矩阵转置，未单元测试
+void matT(const vector<vector<double> > &mat, vector<vector<double> > &matOutput)
+{
+    if(mat.size() != matOutput[0].size() || mat[0].size() != matOutput.size())
+    {
+        cout << "Size error in matT, input: mat; output: mat." << endl;
+        exit(-1);
+        return;
+    }
+    {
+        for(uint i=0;i<mat.size();i++)
+        {
+            for(uint j=0;j<mat[0].size();j++)
+                matOutput[j][i] = mat[i][j];
+        }
+    }
+}
+
+// 多向量相加，未单元测试
+void matAdd(const vector<vector<double> > &vecPack, int packSize, vector<double> &vecOutput)
+{
+    for(int i=0;i<packSize;i++)
+    {
+        if(&vecPack[i] == &vecOutput)
+        {
+            cout << "Error in matAdd, input and output have same address." << endl;
+            exit(-1);
+            return;
+        }
+        if(vecPack[0].size() != vecOutput.size())
+        {
+            cout << "Size error in matAdd, input: vecPack; output: vec." << endl;
+            exit(-1);
+            return;
+        }
+    }
+    for(uint i=0;i<vecPack[0].size();i++)
+    {
+        vecOutput[i] = 0.0;
+        for(int j=0;j<packSize;j++)
+        {
+            vecOutput[i] += vecPack[j][i];
+        }
+    }
+}
+
+// 多向量点乘，未单元测试
+void matDotMul(const vector<vector<double> > &vecPack, int packSize, vector<double> &vecOutput)
+{
+    for(int i=0;i<packSize;i++)
+    {
+        if(&vecPack[i] == &vecOutput)
+        {
+            cout << "Error in matDotMul, input and output have same address." << endl;
+            exit(-1);
+            return;
+        }
+        if(vecPack[0].size() != vecOutput.size())
+        {
+            cout << "Size error in matDotMul, input: vecPack; output: vec." << endl;
+            exit(-1);
+            return;
+        }
+    }
+    for(uint i=0;i<vecPack[0].size();i++)
+    {
+        vecOutput[i] = 1.0;
+        for(int j=0;j<packSize;j++)
+        {
+            vecOutput[i] *= vecPack[j][i];
+        }
+    }
+}
+
+// 多向量点乘，未单元测试
+void matDotMul(const vector<vector<double> *> vecPack, int packSize, vector<double> &vecOutput)
+{
+    for(int i=0;i<packSize;i++)
+    {
+        if(vecPack[i] == &vecOutput)
+        {
+            cout << "Error in matMul, input and output have same address." << endl;
+            exit(-1);
+            return;
+        }
+        if(vecPack[0]->size() != vecOutput.size())
+        {
+            cout << "Size error in matMul, input: vecPack; output: vec." << endl;
+            exit(-1);
+            return;
+        }
+    }
+    for(uint i=0;i<vecPack[0]->size();i++)
+    {
+        vecOutput[i] = 1.0;
+        for(int j=0;j<packSize;j++)
+        {
+            vecOutput[i] *= (*vecPack[j])[i];
+        }
+    }
+}
+
+// 行向量转置成列向量，未单元测试
+void matT(const vector<double> &vec, vector<vector<double> > &vecOutput)
+{
+    if(vec.size() != vecOutput.size())
+    {
+        cout << "Size error in matT, input: vec; output: vecT." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<vec.size();i++)
+        {
+                vecOutput[i][0] = vec[i];
+        }
+    }
+}
+
+// 矩阵相加，未单元测试
+void matAdd(const vector<vector<double> > &mat1, const vector<vector<double> > &mat2, vector<vector<double> > &matOutput)
+{
+    if(mat1.size() != mat2.size() || mat1.size() != matOutput.size() ||
+            mat1[0].size() != mat2[0].size() || mat1[0].size() != matOutput[0].size())
+    {
+        cout << "Size error in matAdd, input: mat, mat; output: mat." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<mat1.size();i++)
+        {
+            for(uint j=0;j<mat1[0].size();j++)
+            {
+                matOutput[i][j] = mat1[i][j]+mat2[i][j];
+            }
+        }
+    }
+}
+
+// 列向量和行向量相乘，未单元测试
+void matMul(const vector<vector<double> > &mat, const vector<double> &vec, vector<vector<double> > &matOutput)
+{
+    if(mat.size() != matOutput.size() || vec.size() != matOutput[0].size())
+    {
+        cout << "Size error in matMul, input: vecT, vec; output: mat." << endl;
+        exit(-1);
+        return;
+    }
+    else
+    {
+        for(uint i=0;i<mat.size();i++)
+            for(uint j=0;j<vec.size();j++)
+                matOutput[i][j] = mat[i][0]*vec[j];
+    }
 }
