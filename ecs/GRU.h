@@ -20,6 +20,7 @@ vector<double> operator -(const vector<double> &mat1, const vector<double> &mat2
 vector<vector<double>> operator -(double a, const vector<vector<double>> &mat2);
 vector<double> operator -(double a, const vector<double> &mat2);
 void matSub(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput);
+void matSub(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2, vector<vector<double>> &matOutput);
 void matSub(double a, const vector<double> &vec, vector<double> &vecOutput);
 
 vector<vector<double>> matDotDiv(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
@@ -39,6 +40,7 @@ vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2,
 void matDotMul(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput);
 void matDotMul(const vector<vector<double>> &vecPack, int packSize, vector<double> &vecOutput);
 void matDotMul(const vector<vector<double>*> vecPack, int packSize, vector<double> &vecOutput);
+void matDotMul(double a, const vector<vector<double>> &mat, vector<vector<double>> &matOutput);
 
 vector<vector<double>> matT(const vector<vector<double> > &src);
 vector<vector<double>> matT(const vector<double> &src);
