@@ -739,7 +739,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
     GRU gru;
     // 隐藏层，训练天数，预测天数
-    int hDim = ceil(double(trainDataDayCount)/10.0);
+    int hDim = ceil(double(trainDataDayCount)/double(predictDaysCount*2));
     gru.setDims(hDim,trainDataDayCount,predictDaysCount);
 
     vector<vector<double>> predictY(serverInfo.flavorTypeCount);
