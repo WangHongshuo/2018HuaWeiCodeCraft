@@ -686,7 +686,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
             y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[h]];
         }
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.05,100,0.5);
+        gru.setData(x,y,0.01,7000,0.5);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();

@@ -5,6 +5,7 @@
 #include <vector>
 #include <math.h>
 #include <float.h>
+#include <random>
 
 using namespace std;
 
@@ -87,6 +88,8 @@ public:
 
 private:
     double getRandomValue();
+    void fillWithRandomValue(vector<vector<double>> &mat, const double &a, const double &b);
+    void fillWithRandomValue(vector<double> &vec, const double &a, const double &b);
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
     double squrshTo(vector<vector<double> > &src, double a, double b);
     void clearBackwardTempValues();

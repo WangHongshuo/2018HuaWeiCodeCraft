@@ -297,7 +297,8 @@ void GRU::startTrainning()
                  store[6] = Uz;
              }
          }
-//         cout << "Error in loop " << loop << " : " << error << endl;
+         if(loop % 500 == 0)
+//             cout << "Error in loop " << loop << " : " << error << endl;
          if(error < targetError)
              break;
     }
@@ -310,22 +311,60 @@ void GRU::startTrainning()
     U  = store[4];
     Wz = store[5];
     Uz = store[6];
-    rValue[0] = matSigmoidF(x[0]*Wr);
-    hBarValue[0] = matTanhF(x[0]*W);
-    zValue[0] = matSigmoidF(x[0]*Wz);
-    hValue[0] = matDotMul(zValue[0],hBarValue[0]);
-    yValue[0] = matSigmoidF(hValue[0]*Wy);
+    // rValue[0] = matSigmoidF(x[0]*Wr);
+    matMul(x[0],Wr,vTemp_1xh[0]);
+    matSigmoidF(vTemp_1xh[0],rValue[0]);
+
+    // hBarValue[0] = matTanhF(x[0]*W);
+    matMul(x[0],W,vTemp_1xh[0]);
+    matTanhF(vTemp_1xh[0],hBarValue[0]);
+
+    // zValue[0] = matSigmoidF(x[0]*Wz);
+    matMul(x[0],Wz,vTemp_1xh[0]);
+    matSigmoidF(vTemp_1xh[0],zValue[0]);
+
+    // hValue[0] = matDotMul(zValue[0],hBarValue[0]);
+    matDotMul(zValue[0],hBarValue[0],hValue[0]);
+
+    // yValue[0] = matSigmoidF(hValue[0]*Wy);
+    matMul(hValue[0],Wy,vTemp_1xy[0]);
+    matSigmoidF(vTemp_1xy[0],yValue[0]);
+
     for(int t=1;t<uNum;t++)
     {
-        rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
-        hBarValue[t] = matTanhF(x[t]*W+(matDotMul(rValue[t],hValue[t-1]))*U);
-        zValue[t] = matSigmoidF(x[t]*Wz+hValue[t-1]*Uz);
-        hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
-        yValue[t] = matSigmoidF(hValue[t]*Wy);
+        // rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
+        matMul(x[t],Wr,vTemp_1xh[0]);
+        matMul(hValue[t-1],Ur,vTemp_1xh[1]);
+        matAdd(vTemp_1xh[0],vTemp_1xh[1],vTemp_1xh[0]);
+        matSigmoidF(vTemp_1xh[0],rValue[t]);
+
+        // hBarValue[t] = matTanhF(x[t]*W+(matDotMul(rValue[t],hValue[t-1]))*U);
+        matDotMul(rValue[t],hValue[t-1],vTemp_1xh[0]);
+        matMul(vTemp_1xh[0],U,vTemp_1xh[1]);
+        matMul(x[t],W,vTemp_1xh[2]);
+        matAdd(vTemp_1xh[1],vTemp_1xh[2],vTemp_1xh[0]);
+        matTanhF(vTemp_1xh[0],hBarValue[t]);
+
+        // zValue[t] = matSigmoidF(x[t]*Wz+hValue[t-1]*Uz);
+        matMul(x[t],Wz,vTemp_1xh[0]);
+        matMul(hValue[t-1],Uz,vTemp_1xh[1]);
+        matAdd(vTemp_1xh[0],vTemp_1xh[1],vTemp_1xh[0]);
+        matSigmoidF(vTemp_1xh[0],zValue[t]);
+
+        // hValue[t] = matDotMul(1-zValue[t],hValue[t-1])+matDotMul(zValue[t],hBarValue[t]);
+        matSub(1,zValue[t],vTemp_1xh[0]);
+        matDotMul(vTemp_1xh[0],hValue[t-1],vTemp_1xh[0]);
+        matDotMul(zValue[t],hBarValue[t],vTemp_1xh[1]);
+        matAdd(vTemp_1xh[0],vTemp_1xh[1],hValue[t]);
+
+        // yValue[t] = matSigmoidF(hValue[t]*Wy);
+        matMul(hValue[t],Wy,vTemp_1xy[0]);
+        matSigmoidF(vTemp_1xy[0],yValue[t]);
     }
+
     // 恢复压缩的输出
     cout << "Min Error is " << minError << endl;
-    yValue = scaleY*yValue;
+    matDotMul(scaleY,yValue,yValue);
 }
 
 double GRU::sigmoidForward(double x)
@@ -599,30 +638,14 @@ void GRU::initCell()
 // 初始化值
 void GRU::initCellValue()
 {
-    srand(time(0));
-    for(uint i=0;i<Wy.size();i++)
-        for(uint j=0;j<Wy[0].size();j++)
-        {
-            Wy[i][j] = 0.5;
-        }
-    for(uint i=0;i<Ur.size();i++)
-    {
-        for(uint j=0;j<Ur[0].size();j++)
-        {
-            Ur[i][j] = 0.5;
-            U[i][j] = 0.5;
-            Uz[i][j] = 0.5;
-        }
-    }
-    for(uint i=0;i<Wr.size();i++)
-    {
-        for(uint j=0;j<Wr[0].size();j++)
-        {
-            Wr[i][j] = 0.5;
-            W[i][j] = 0.5;
-            Wz[i][j] = 0.5;
-        }
-    }
+    fillWithRandomValue(Wy,-1.0,1.0);
+    fillWithRandomValue(Ur,-1.0,1.0);
+    fillWithRandomValue(U,-1.0,1.0);
+    fillWithRandomValue(Uz,-1.0,1.0);
+    fillWithRandomValue(Wr,-1.0,1.0);
+    fillWithRandomValue(W,-1.0,1.0);
+    fillWithRandomValue(Wz,-1.0,1.0);
+
     for(uint i=0;i<rValue.size();i++)
     {
         rValue[i].assign(rValue[0].size(),0.0);
@@ -647,6 +670,26 @@ void GRU::initCellValue()
 double GRU::getRandomValue()
 {
     return (rand()%1000/(double)1002)*2-1;
+}
+
+// 填充[-1,1]随机数
+void GRU::fillWithRandomValue(vector<vector<double> > &mat, const double &a, const double &b)
+{
+    default_random_engine dre;
+    dre.seed(time(0));
+    uniform_real_distribution<double> dr(a,b);
+    for(uint i=0;i<mat.size();i++)
+        for(uint j=0;j<mat[0].size();j++)
+            mat[i][j] = dr(dre);
+}
+
+void GRU::fillWithRandomValue(vector<double> &vec, const double &a, const double &b)
+{
+    default_random_engine dre;
+    dre.seed(time(0));
+    uniform_real_distribution<double> dr(a,b);
+    for(uint i=0;i<vec.size();i++)
+        vec[i] = dr(dre);
 }
 
 // 计算误差，未单元测试
