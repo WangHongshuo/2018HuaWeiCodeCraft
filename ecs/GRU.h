@@ -9,35 +9,18 @@
 
 using namespace std;
 
-vector<vector<double>> operator +(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
-vector<double> operator +(const vector<double> &mat1, const vector<double> &mat2);
-vector<vector<double>> operator +(double a, const vector<vector<double>> &mat2);
+
 void matAdd(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput);
 void matAdd(const vector<vector<double>> &vecPack,int packSize, vector<double> &vecOutput);
 void matAdd(const vector<vector<double>> &mat1,const vector<vector<double>> &mat2, vector<vector<double>> &matOutput);
 
-vector<vector<double>> operator -(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
-vector<double> operator -(const vector<double> &mat1, const vector<double> &mat2);
-vector<vector<double>> operator -(double a, const vector<vector<double>> &mat2);
-vector<double> operator -(double a, const vector<double> &mat2);
 void matSub(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput);
 void matSub(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2, vector<vector<double>> &matOutput);
 void matSub(double a, const vector<double> &vec, vector<double> &vecOutput);
 
-vector<vector<double>> matDotDiv(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
-
-vector<vector<double>> operator *(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
-vector<vector<double> > operator *(const vector<vector<double> > &mat1, const vector<double> &mat2);
-vector<double> operator *(const vector<double> &mat1, const vector<vector<double>> &mat2);
-vector<double> operator *(const vector<double> &mat1, const vector<double> &mat2);
-vector<vector<double>> operator *(double a, const vector<vector<double>> &mat2);
 void matMul(const vector<double> &vec, const vector<vector<double>> &mat, vector<double> &vecOutput);
 void matMul(const vector<vector<double>> &mat, const vector<double> &vec, vector<vector<double>> &matOutput);
 
-vector<vector<double>> matDotMul(const vector<vector<double>> &mat1, const vector<vector<double>> &mat2);
-vector<vector<double>> matDotMul(double a, const vector<vector<double>> &mat2);
-vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2);
-vector<double> matDotMul(const vector<double> &mat1, const vector<double> &mat2, const vector<double> &mat3);
 void matDotMul(const vector<double> &vec1, const vector<double> &vec2, vector<double> &vecOutput);
 void matDotMul(const vector<vector<double>> &vecPack, int packSize, vector<double> &vecOutput);
 void matDotMul(const vector<vector<double>*> vecPack, int packSize, vector<double> &vecOutput);
@@ -45,11 +28,8 @@ void matDotMul(double a, const vector<vector<double>> &mat, vector<vector<double
 
 vector<vector<double>> matT(const vector<vector<double> > &src);
 vector<vector<double>> matT(const vector<double> &src);
-vector<double> matT(const vector<vector<double> > &src,int type);
 void matT(const vector<vector<double>> &mat, vector<vector<double>> &matOutput);
 void matT(const vector<double> &vec, vector<vector<double>> &vecOutput);
-
-vector<double> autoFit(const vector<vector<double>> &mat1);
 
 typedef unsigned int uint;
 
@@ -66,19 +46,11 @@ public:
 
     double sigmoidForward(double x);
     double sigmoidBackward(double x);
-    vector<vector<double>> matSigmoidF(const vector<vector<double> > &mat);
-    vector<double> matSigmoidF(const vector<double> &mat);
-    vector<vector<double>> matSigmoidB(const vector<vector<double>> &mat);
-    vector<double> matSigmoidB(const vector<double> &mat);
     void matSigmoidF(const vector<double> &vec, vector<double> &vecOutput);
     void matSigmoidB(const vector<double> &vec, vector<double> &vecOutput);
 
     double tanhForward(double x);
     double tanhBackward(double x);
-    vector<vector<double>> matTanhF(const vector<vector<double> > &mat);
-    vector<double> matTanhF(const vector<double> &mat);
-    vector<vector<double>> matTanhB(const vector<vector<double> > &mat);
-    vector<double> matTanhB(const vector<double> &mat);
     void matTanhF(const vector<double> &vec, vector<double> &vecOutput);
     void matTanhB(const vector<double> &vec, vector<double> &vecOutput);
 
@@ -87,7 +59,6 @@ public:
     vector<vector<double>> y;
 
 private:
-    double getRandomValue();
     void fillWithRandomValue(vector<vector<double>> &mat, const double &a, const double &b);
     void fillWithRandomValue(vector<double> &vec, const double &a, const double &b);
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);

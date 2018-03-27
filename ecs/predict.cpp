@@ -104,13 +104,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictVMCount += predictDataFlavorCount[i][1];
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "predict data count:  VM count: " << predictVMCount << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    cout << "predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -764,5 +764,6 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
            temp += predictY[i-1][trainDataDayCount+j];
         }
         predictArray[i][1] = ceil(temp);
+        cout << "Ori Flavor[" << predictArray[i][0] << "]: " << predictArray[i][1] << endl;
     }
 }
