@@ -28,7 +28,7 @@ struct phyServerInfo
     int CPUCount = 0;
     int MEMCount = 0;
     int flavorTypeCount = 0;
-    // Îª·½±ã£¬Ë÷Òı´Ó1¿ªÊ¼£¬0ÎªÎŞĞ§Êı¾İ
+    // ä¸ºæ–¹ä¾¿ï¼Œç´¢å¼•ä»1å¼€å§‹ï¼Œ0ä¸ºæ— æ•ˆæ•°æ®
     int flavorType[16] = {0};
     int optimizedTarget = 0;
     date predictStartTime;
@@ -41,7 +41,7 @@ struct trainData
     date time;
     int dayOfWeek = 0;
     bool isSpecialDay = false;
-    // Îª·½±ã£¬Ë÷Òı´Ó1¿ªÊ¼£¬0ÎªÎŞĞ§Êı¾İ
+    // ä¸ºæ–¹ä¾¿ï¼Œç´¢å¼•ä»1å¼€å§‹ï¼Œ0ä¸ºæ— æ•ˆæ•°æ®
     int flavorCount[16] = {0};
     trainData() {}
 };

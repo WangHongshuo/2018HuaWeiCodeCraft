@@ -662,7 +662,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 flavorType = serverInfo.flavorType[i];
             }
         }
-        cout << maxCount << " " << flavorType << endl;
+        // cout << maxCount << " " << flavorType << endl;
         // 如果每种flavor的数量较小，删除，否则尝试放满
         if(maxCount < 2)
         {
@@ -675,7 +675,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+            // cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
             // 就是要放满
             bool isThisFlavorCanPushIn;
             for(int i=MAX_FLAVOR_TYPE;i>0;i--)
@@ -704,7 +704,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 }
             }
         }
-        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+        // cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
     }
     predictPhyServerCount = SERVER_COUNT;
     cout << "DONE!";
@@ -713,9 +713,34 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
 void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
+    // 输出数据到文件
+//    ofstream output("F:/MATLAB_project/HW/train.txt",ios_base::out);
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=1;j<=trainDataDayCount+predictDaysCount;j++)
+//        {
+//            if(j <= trainDataDayCount)
+//                output << vTrainData[j].flavorCount[serverInfo.flavorType[i]] << " ";
+//            else
+//                output << '0' << " ";
+//        }
+//        output << '\n';
+//    }
+//    int tempWeek = vTrainData[1].dayOfWeek;
+//    for(int j=1;j<=trainDataDayCount+predictDaysCount;j++)
+//    {
+//        output << tempWeek << " ";
+//        tempWeek++;
+//        if(tempWeek > 7)
+//            tempWeek = 1;
+//    }
+//    output.close();
+//    system("pause");
+
     GRU gru;
     // 隐藏层，训练天数，预测天数
-    gru.setDims(16,trainDataDayCount,predictDaysCount);
+    int hDim = ceil(double(trainDataDayCount)/10.0);
+    gru.setDims(hDim,trainDataDayCount,predictDaysCount);
 
     vector<vector<double>> predictY(serverInfo.flavorTypeCount);
     for(int i=0;i<serverInfo.flavorTypeCount;i++)
