@@ -578,70 +578,48 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
     int MAX_FLAVOR_TYPE = serverInfo.flavorTypeCount;
     int MAX_CPU = serverInfo.CPUCount;
     int MAX_MEM = serverInfo.MEMCount;
-    int flavorType = 0, flavorCount, startServerIndex = 1;
-    bool isContinuePut = true;
+    int flavorType = 0, flavorCount, tryCount = 0;;
     while(tPredictVMCount)
     {
         for(int i=MAX_FLAVOR_TYPE;i>0;i--)
         {
             flavorType = tPredictArray[i][0];
             flavorCount = tPredictArray[i][1];
-            isContinuePut = true;
+            tryCount ++ ;
             while(flavorCount)
             {
-                for(int k=startServerIndex;k<=SERVER_COUNT;k++)
+//                cout << "Before server[" << SERVER_COUNT << "] add Flavor[" << flavorType << "]:" << endl;
+//                cout << "Flavor[" << flavorType << "] count: " << flavorCount << endl;
+//                cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
+//                     << " server is full = " << server[SERVER_COUNT].isFull << endl;
+//                cout << "=================" << endl;
+//                system("pause");
+                if(server[SERVER_COUNT].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
+                        server[SERVER_COUNT].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
                 {
-//                    cout << "Before server[" << k << "] add Flavor[" << flavorType << "]:" << endl;
-//                    cout << "Flavor[" << flavorType << "] count: " << flavorCount << endl;
-//                    cout << "server[" << k << "] used CPU: " << server[k].usedCPU << " used MEM: " << server[k].usedMEM
-//                         << " server is full = " << server[k].isFull << endl;
-//                    cout << "=================" << endl;
-//                    system("pause");
-                    if(server[k].isFull)
+                    if((i==1 || tryCount > MAX_FLAVOR_TYPE) && tPredictVMCount > 0)
                     {
-                        continue;
-                    }
-                    if(server[k].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
-                            server[k].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
-                    {
-                        if(i==1)
-                        {
-                            server[k].isFull = true;
-                            if(k == SERVER_COUNT && flavorCount > 0)
-                            {
-                                server.push_back(phyServer());
-                                SERVER_COUNT++;
-                                startServerIndex++;
-                                isContinuePut = false;
-                                break;
-                            }
-                            continue;
-                        }
-                        else
-                        {
-                            isContinuePut = false;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        server[k].usedCPU += FLAVOR[flavorType][0];
-                        server[k].usedMEM += FLAVOR[flavorType][1];
-                        server[k].flavorCount[flavorType]++;
-                        server[k].VMCount++;
-                        flavorCount--;
-                        tPredictVMCount--;
-                    }
-                    tPredictArray[i][1] = flavorCount;
-                    if(flavorCount == 0)
-                        break;
-                    if(k == SERVER_COUNT && flavorCount > 0 && server[k].isFull)
-                    {
+                        server[SERVER_COUNT].isFull = true;
+                        tryCount = 1;
                         server.push_back(phyServer());
                         SERVER_COUNT++;
                     }
+                    else
+                    {
+                        break;
+                    }
                 }
-                if(!isContinuePut)
+                else
+                {
+                    server[SERVER_COUNT].usedCPU += FLAVOR[flavorType][0];
+                    server[SERVER_COUNT].usedMEM += FLAVOR[flavorType][1];
+                    server[SERVER_COUNT].flavorCount[flavorType]++;
+                    server[SERVER_COUNT].VMCount++;
+                    flavorCount--;
+                    tPredictVMCount--;
+                }
+                tPredictArray[i][1] = flavorCount;
+                if(flavorCount == 0)
                     break;
             }
         }
