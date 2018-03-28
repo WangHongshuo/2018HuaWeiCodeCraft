@@ -104,13 +104,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictVMCount += predictDataFlavorCount[i][1];
 
     // 输出用例（输出全部可输出数据）：
-    cout << "predict data count:  VM count: " << predictVMCount << endl;
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
-        cout << endl;
-    }
-    cout << "=================" << endl;
+//    cout << "predict data count:  VM count: " << predictVMCount << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -119,17 +119,18 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     allocateModel(server,predictDataFlavorCount,predictVMCount,serverInfo,predictPhyServerCount);
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "predicted phy server count: " << predictPhyServerCount << endl;
-//    for(int i=1;i<=predictPhyServerCount;i++)
-//    {
-//        cout << "Server " << i << " :" << endl;
-//        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
-//        {
-//            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
-//        }
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    cout << "predicted phy server count: " << predictPhyServerCount << endl;
+    for(int i=1;i<=predictPhyServerCount;i++)
+    {
+        cout << "Server " << i << " : " << "CPU: " << server[i].usedCPU << "/" << serverInfo.CPUCount
+             << ", MEM: " << server[i].usedMEM << "/" << serverInfo.MEMCount << endl;
+        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+        {
+            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
+        }
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -625,6 +626,15 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
     }
 
+    // 输出Chicken前的预测
+    cout << "Before chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
+
     // 反向Chicken调整，服务器数量必须大于1
     if(SERVER_COUNT > 1)
     {
@@ -640,7 +650,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 flavorType = serverInfo.flavorType[i];
             }
         }
-        // cout << maxCount << " " << flavorType << endl;
+//        cout << maxCount << " " << flavorType << endl;
         // 如果每种flavor的数量较小，删除，否则尝试放满
         if(maxCount < 2)
         {
@@ -653,7 +663,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-            // cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+//            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
             // 就是要放满
             bool isThisFlavorCanPushIn;
             for(int i=MAX_FLAVOR_TYPE;i>0;i--)
@@ -682,10 +692,20 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 }
             }
         }
-        // cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+//        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
     }
+
+    // 输出Chicken后的预测
+    cout << "After chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
+
     predictPhyServerCount = SERVER_COUNT;
-    cout << "DONE!";
+    cout << "DONE!" << endl;
 }
 
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
@@ -767,6 +787,5 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
            temp += predictY[i-1][trainDataDayCount+j];
         }
         predictArray[i][1] = ceil(temp);
-        cout << "Ori Flavor[" << predictArray[i][0] << "]: " << predictArray[i][1] << endl;
     }
 }
