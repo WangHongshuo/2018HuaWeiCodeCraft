@@ -71,13 +71,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     }
 
     // 输出用例（输出全部可输出数据）：
-//    cout << "train data count: " << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        cout << "Flavor" << trainDataFlavorCount[i][0] << "  Count: " << trainDataFlavorCount[i][1];
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    cout << "train data count: " << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << trainDataFlavorCount[i][0] << "  Count: " << trainDataFlavorCount[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -104,13 +104,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictVMCount += predictDataFlavorCount[i][1];
 
     // 输出用例（输出全部可输出数据）：
-    cout << "predict data count:  VM count: " << predictVMCount << endl;
-    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-    {
-        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
-        cout << endl;
-    }
-    cout << "=================" << endl;
+//    cout << "predict data count:  VM count: " << predictVMCount << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        cout << "Flavor" << predictDataFlavorCount[i][0] << "  Count: " << predictDataFlavorCount[i][1];
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -162,8 +162,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     }
 
     // 输出用例（输出全部可输出数据）：
-    cout << "Test output: " << endl;
-    cout << strOutput;
+//    cout << "Test output: " << endl;
+//    cout << strOutput;
 
 	// 需要输出的内容
     const char * result_file = strOutput.data();
@@ -629,6 +629,14 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
             }
         }
     }
+    // 输出Chicken前的预测
+    cout << "Before chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
 
     // 反向Chicken调整，服务器数量必须大于1
     if(SERVER_COUNT > 1)
@@ -645,7 +653,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 flavorType = serverInfo.flavorType[i];
             }
         }
-        cout << maxCount << " " << flavorType << endl;
+//        cout << maxCount << " " << flavorType << endl;
         // 如果每种flavor的数量较小，删除，否则尝试放满
         if(maxCount < 2)
         {
@@ -658,7 +666,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+//            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
             // 就是要放满
             bool isThisFlavorCanPushIn;
             for(int i=MAX_FLAVOR_TYPE;i>0;i--)
@@ -687,10 +695,20 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 }
             }
         }
-        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
+//        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
     }
+
+    // 输出Chicken后的预测
+    cout << "After chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
+        cout << endl;
+    }
+    cout << "=================" << endl;
+
     predictPhyServerCount = SERVER_COUNT;
-    cout << "DONE!";
+    cout << "DONE!" << endl;
 }
 
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
@@ -737,7 +755,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-
+    double a = 0.5;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -782,56 +800,18 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
     for(int i=0;i<=serverInfo.flavorTypeCount;i++)
         S1[i].resize(1+packedArrayLength);
-
-    vector <double> test_S1(1+packedArrayLength);
-    vector <double> test_output(1+predictDaysCount);
-
     int initialPackSize = predictDaysCount;
     for(int i=0;i<=serverInfo.flavorTypeCount;i++)
     {
         for(int j=1;j<=initialPackSize;j++)
             S1[i][0] += packedArray[i][j];
-       test_S1[0] = S1[i][0] /= initialPackSize;
+        S1[i][0] /= initialPackSize;
         // 开始预测，预测已知数据
-        // 循环找出最佳a
-        double a, temp_a = 0;
-        double diff = 0, temp_diff = 0;
-        for(int j=1;j<=9;j++)
+        for(int j=1;j<=packedArrayLength-packSize;j++)
         {
-            a = 0.1*double(j);
-            for(int k=1;k<=packedArrayLength-packSize;k++)
-            {
-                test_S1[k] = S1[i][k] = a*packedArray[i][k]+(1-a)*S1[i][k-1];
-            }
-            S1[i][0] = packedArray[i][0];
-            // 预测trainData结尾predictDaysCount天数的packedArray数据
-            test_output[0] = packedArray[i][packedArrayLength-2*packSize];
-            for(int k=1;k<=predictDaysCount;k++)
-            {
-                test_output[k] = a*test_output[k-1]+
-                        (1-a)*test_S1[packedArrayLength-2*packSize+k-1];
-                test_S1[packedArrayLength-packSize+k] = a*test_output[k]+
-                        (1-a)*test_S1[packedArrayLength-packSize+k-1];
-            }
-            // 计算diff
-            if(j == 1)
-            {
-                for(int k=1;k<=predictDaysCount;k++)
-                    diff += pow(packedArray[i][packedArrayLength-2*packSize+k]-test_output[k],2);
-                temp_a = a;
-            }
-            else
-            {
-                for(int k=1;k<=predictDaysCount;k++)
-                    temp_diff += pow(packedArray[i][packedArrayLength-2*packSize+k]-test_output[k],2);
-                if(temp_diff < diff)
-                {
-                    diff = temp_diff;
-                    temp_a = a;
-                }
-            }
+            S1[i][j] = a*packedArray[i][j]+(1-a)*S1[i][j-1];
         }
-        a = temp_a;
+        S1[i][0] = packedArray[i][0];
         // 预测未知数据
         for(int j=1;j<=predictDaysCount;j++)
         {
