@@ -648,6 +648,8 @@ double GRU::squrshTo(vector<vector<double>> &src, double a, double b)
                 MAX_VALUE = src[i][j];
         }
     }
+    if(MAX_VALUE == 0)
+        MAX_VALUE = 1;
     for(uint i=0;i<src.size();i++)
     {
         for(uint j=0;j<src[0].size();j++)
