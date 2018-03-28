@@ -785,6 +785,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
+        S1[i][0] = 0.0;
         for(int j=1;j<=initialPackSize;j++)
             S1[i][0] += packedArray[i][j];
         S1[i][0] /= initialPackSize;
