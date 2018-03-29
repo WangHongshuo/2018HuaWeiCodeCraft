@@ -737,7 +737,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-    double a = 0.5;
+    double a = 0.48;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
