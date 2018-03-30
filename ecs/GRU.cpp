@@ -11,11 +11,12 @@ GRU::~GRU()
 
 }
 
-void GRU::setDims(int hidenDims, int trainNums, int predictNums)
+void GRU::setParameters(int hidenDims, int trainNums, int predictNums, int timeStep)
 {
     hDim = hidenDims;
     uNum = trainNums+predictNums;
     pNum = predictNums;
+    tNum = timeStep;
 }
 
 void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double _step, int _iterateNum, double _targetError)
@@ -59,7 +60,7 @@ void GRU::startTrainning()
         matMul(hValue[0],Wy,vTemp_1xy[0]);
         matSigmoidF(vTemp_1xy[0],yValue[0]);
 
-        for(int t=1;t<uNum-pNum;t++)
+        for(int t=1;t<uNum-pNum-tNum;t++)
         {
             // rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
             matMul(x[t],Wr,vTemp_1xh[0]);
@@ -93,7 +94,7 @@ void GRU::startTrainning()
 
         // Backward，与matlab仿真前3循环一致
         clearBackwardTempValues();
-        for(int t=uNum-pNum-1;t>=1;t--)
+        for(int t=uNum-pNum-tNum-1;t>=1;t--)
         {
             // delta_y = matDotMul(yValue[t]-y[t],matSigmoidB(yValue[t]));
             matSub(yValue[t],y[t],vTemp_1xy[0]);
@@ -330,7 +331,7 @@ void GRU::startTrainning()
     matMul(hValue[0],Wy,vTemp_1xy[0]);
     matSigmoidF(vTemp_1xy[0],yValue[0]);
 
-    for(int t=1;t<uNum;t++)
+    for(int t=1;t<uNum-tNum;t++)
     {
         // rValue[t] = matSigmoidF(x[t]*Wr+hValue[t-1]*Ur);
         matMul(x[t],Wr,vTemp_1xh[0]);
@@ -360,6 +361,12 @@ void GRU::startTrainning()
         // yValue[t] = matSigmoidF(hValue[t]*Wy);
         matMul(hValue[t],Wy,vTemp_1xy[0]);
         matSigmoidF(vTemp_1xy[0],yValue[t]);
+
+        if(t > uNum-pNum-tNum-1)
+        {
+            for(int i=0;i<tNum;i++)
+                x[t+i+1][tNum-i-1] = yValue[t][0];
+        }
     }
 
     // 恢复压缩的输出

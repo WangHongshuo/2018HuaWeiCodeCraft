@@ -38,7 +38,7 @@ class GRU
 public:
     GRU();
     ~GRU();
-    void setDims(int hidenDims, int trainNums, int predictNums);
+    void setParameters(int hidenDims, int trainNums, int predictNums, int timeStep);
     void setData(vector<vector<double>> &X, vector<vector<double>> &Y, double _step, int _iterateNum, double _targetError);
     void initCell();
     void initCellValue();
@@ -69,6 +69,7 @@ private:
     int yDim;
     int hDim;
     int pNum;
+    int tNum;
     int iterateNum = -1;
     double step = 0.0;
     double minError = 0.0;

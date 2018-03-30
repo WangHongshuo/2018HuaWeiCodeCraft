@@ -737,54 +737,59 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
     GRU gru;
     // 隐藏层，训练天数，预测天数
-    int hDim = ceil(double(trainDataDayCount)/double(predictDaysCount*2));
-    gru.setDims(hDim,trainDataDayCount,predictDaysCount);
-
+    int hDim = ceil(double(trainDataDayCount)/double(predictDaysCount));
+    int timeStep = predictDaysCount;
+    gru.setParameters(22,trainDataDayCount,predictDaysCount,timeStep);
+    // 存放预测的临时变量
     vector<vector<double>> predictY(serverInfo.flavorTypeCount);
     for(int i=0;i<serverInfo.flavorTypeCount;i++)
         predictY[i].resize(trainDataDayCount+predictDaysCount);
 
     // 组建训练数据,索引从0开始，x只需建立一次
-    vector<vector<double>> x(2);
-    for(int i=0;i<2;i++)
+    vector<vector<double>> x(timeStep);
+    for(uint i=0;i<x.size();i++)
         x[i].resize(trainDataDayCount+predictDaysCount);
     vector<vector<double>> y(1);
     for(int i=0;i<1;i++)
         y[i].resize(trainDataDayCount+predictDaysCount);
-    y[0].assign(y[0].size(),0.0);
-    for(uint i=0;i<y[0].size();i++)
-    {
-        x[0][i] = i+1;
-    }
-    x[1][0] = vTrainData[1].dayOfWeek;
-    for(uint i=1;i<y[0].size();i++)
-    {
-        x[1][i] = x[1][i-1]+1;
-        if(x[1][i] > 7)
-            x[1][i] = 1;
-    }
+
     // 循环训练所有数据
     for(int h=1;h<=serverInfo.flavorTypeCount;h++)
     {
-        for(int i=0;i<trainDataDayCount;i++)
+        for(uint i=0;i<x.size();i++)
+            x[i].assign(x[0].size(),0.0);
+        y[0].assign(y[0].size(),0.0);
+
+        for(int i=0;i<timeStep;i++)
         {
-            y[0][i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[h]];
+            for(int j=0;j<trainDataDayCount;j++)
+            {
+                if(j+1+i > trainDataDayCount)
+                    break;
+                x[i][j] = vTrainData[j+1+i].flavorCount[serverInfo.flavorType[h]];
+            }
+        }
+
+        for(int i=0;i<trainDataDayCount-timeStep;i++)
+        {
+            y[0][i] = vTrainData[i+1+timeStep].flavorCount[serverInfo.flavorType[h]];
         }
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.01,7000,0.5);
+        gru.setData(x,y,0.01,1500,1);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();
         gru.startTrainning();
         gru.getPredictArray(predictY[h-1]);
     }
+    // 计算总天数
     double temp;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         temp = 0.0;
         for(int j=0;j<predictDaysCount;j++)
         {
-           temp += predictY[i-1][trainDataDayCount+j];
+           temp += predictY[i-1][trainDataDayCount-timeStep+j];
         }
         predictArray[i][1] = ceil(temp);
     }
