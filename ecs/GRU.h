@@ -63,6 +63,7 @@ private:
     void fillWithRandomValue(vector<double> &vec, const double &a, const double &b);
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
     double squrshTo(vector<vector<double> > &src, double a, double b);
+    double squrshTo(vector<vector<double> > &x, vector<vector<double> > &y, double a, double b);
     void clearBackwardTempValues();
     int uNum;
     int xDim;

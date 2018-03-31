@@ -119,18 +119,18 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     allocateModel(server,predictDataFlavorCount,predictVMCount,serverInfo,predictPhyServerCount);
 
     // 输出用例（输出全部可输出数据）：
-    cout << "predicted phy server count: " << predictPhyServerCount << endl;
-    for(int i=1;i<=predictPhyServerCount;i++)
-    {
-        cout << "Server " << i << " : " << "CPU: " << server[i].usedCPU << "/" << serverInfo.CPUCount
-             << ", MEM: " << server[i].usedMEM << "/" << serverInfo.MEMCount << endl;
-        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
-        {
-            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
-        }
-        cout << endl;
-    }
-    cout << "=================" << endl;
+//    cout << "predicted phy server count: " << predictPhyServerCount << endl;
+//    for(int i=1;i<=predictPhyServerCount;i++)
+//    {
+//        cout << "Server " << i << " : " << "CPU: " << server[i].usedCPU << "/" << serverInfo.CPUCount
+//             << ", MEM: " << server[i].usedMEM << "/" << serverInfo.MEMCount << endl;
+//        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+//        {
+//            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
+//        }
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
 
     // ======================================================================
 
@@ -737,45 +737,80 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
     GRU gru;
     // 隐藏层，训练天数，预测天数
-    int hDim = ceil(double(trainDataDayCount)/double(predictDaysCount));
+    int hDim = ceil(double(trainDataDayCount)/double(4.5));
     int timeStep = predictDaysCount;
-    gru.setParameters(22,trainDataDayCount,predictDaysCount,timeStep);
+
+    // 组建训练数据,索引从0开始，x只需建立一次
+    int packSize = predictDaysCount;
+    vector<double> oriTrainData(trainDataDayCount+predictDaysCount-packSize);
+    vector<double> S(oriTrainData.size());
+
+    vector<vector<double>> x(timeStep);
+    for(uint i=0;i<x.size();i++)
+        x[i].resize(oriTrainData.size());
+    vector<vector<double>> y(1);
+    for(int i=0;i<1;i++)
+        y[i].resize(oriTrainData.size());
+
     // 存放预测的临时变量
     vector<vector<double>> predictY(serverInfo.flavorTypeCount);
     for(int i=0;i<serverInfo.flavorTypeCount;i++)
-        predictY[i].resize(trainDataDayCount+predictDaysCount);
+        predictY[i].resize(S.size());
 
-    // 组建训练数据,索引从0开始，x只需建立一次
-    vector<vector<double>> x(timeStep);
-    for(uint i=0;i<x.size();i++)
-        x[i].resize(trainDataDayCount+predictDaysCount);
-    vector<vector<double>> y(1);
-    for(int i=0;i<1;i++)
-        y[i].resize(trainDataDayCount+predictDaysCount);
-
+    int tempPack = 0;
+    gru.setParameters(hDim,trainDataDayCount-packSize,predictDaysCount,timeStep);
     // 循环训练所有数据
+
+    // alpha
+    double a = 0.5;
     for(int h=1;h<=serverInfo.flavorTypeCount;h++)
     {
+        for(int i=0;i<trainDataDayCount;i++)
+            oriTrainData[i] = vTrainData[i+1].flavorCount[serverInfo.flavorType[h]];
+        // packed data
+        for(uint i=0;i<oriTrainData.size();i++)
+        {
+            if(i < oriTrainData.size()-7)
+            {
+                for(int j=0;j<packSize;j++)
+                    tempPack += oriTrainData[i+j];
+                oriTrainData[i] = tempPack;
+                tempPack = 0;
+            }
+            else
+            {
+                oriTrainData[i] = 0;
+            }
+        }
+        // ES
+        for(int i=0;i<predictDaysCount;i++)
+            S[0] += oriTrainData[i];
+        S[0] /= predictDaysCount;
+        S[1] = a*oriTrainData[0]+(1-a)*S[0];
+        S[0] = S[1];
+        for(uint i=1;i<oriTrainData.size()-predictDaysCount;i++)
+            S[i] = a*oriTrainData[i]+(1-a)*S[i-1];
+
         for(uint i=0;i<x.size();i++)
             x[i].assign(x[0].size(),0.0);
         y[0].assign(y[0].size(),0.0);
 
-        for(int i=0;i<timeStep;i++)
+        for(uint i=0;i<uint(timeStep);i++)
         {
-            for(int j=0;j<trainDataDayCount;j++)
+            for(uint j=0;j<S.size()-predictDaysCount;j++)
             {
-                if(j+1+i > trainDataDayCount)
+                if(j+i > S.size()-predictDaysCount)
                     break;
-                x[i][j] = vTrainData[j+1+i].flavorCount[serverInfo.flavorType[h]];
+                x[i][j] = S[i+j];
             }
         }
 
-        for(int i=0;i<trainDataDayCount-timeStep;i++)
+        for(int i=0;i<int(S.size())-timeStep;i++)
         {
-            y[0][i] = vTrainData[i+1+timeStep].flavorCount[serverInfo.flavorType[h]];
+            y[0][i] = S[i+timeStep];
         }
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.01,1500,1);
+        gru.setData(x,y,0.02,2000,0.7);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();
@@ -789,8 +824,8 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         temp = 0.0;
         for(int j=0;j<predictDaysCount;j++)
         {
-           temp += predictY[i-1][trainDataDayCount-timeStep+j];
+           temp += predictY[i-1][S.size()-timeStep-predictDaysCount+j];
         }
-        predictArray[i][1] = ceil(temp);
+        predictArray[i][1] = ceil(temp/7/a);
     }
 }

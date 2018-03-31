@@ -33,8 +33,7 @@ void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double
 // 主体函数，error与matla仿真前6循环一致
 void GRU::startTrainning()
 {
-    scaleX = squrshTo(x,0.0,1.0);
-    scaleY = squrshTo(y,0.0,1.0);
+    scaleY = squrshTo(x,y,0.0,1.0);
     x = matT(x);
     y = matT(y);
     for(int loop=0;loop<iterateNum;loop++)
@@ -298,7 +297,7 @@ void GRU::startTrainning()
                  store[6] = Uz;
              }
          }
-         if(loop % 500 == 0)
+//         if(loop % 500 == 0)
 //             cout << "Error in loop " << loop << " : " << error << endl;
          if(error < targetError)
              break;
@@ -662,6 +661,50 @@ double GRU::squrshTo(vector<vector<double>> &src, double a, double b)
         for(uint j=0;j<src[0].size();j++)
         {
             src[i][j] = src[i][j]/MAX_VALUE*n+a;
+        }
+    }
+    return MAX_VALUE/n;
+}
+
+// 线性压缩数据到[a,b]之间
+double GRU::squrshTo(vector<vector<double>> &x, vector<vector<double>> &y, double a, double b)
+{
+    double MAX_VALUE_X = y[0][0];
+    double MAX_VALUE_Y = y[0][0];
+    double n = b-a;
+    for(uint i=0;i<x.size();i++)
+    {
+        for(uint j=0;j<x[0].size();j++)
+        {
+            if(MAX_VALUE_X < x[i][j])
+                MAX_VALUE_X = x[i][j];
+        }
+    }
+    if(MAX_VALUE_X == 0)
+        MAX_VALUE_X = 1;
+    for(uint i=0;i<y.size();i++)
+    {
+        for(uint j=0;j<y[0].size();j++)
+        {
+            if(MAX_VALUE_Y < y[i][j])
+                MAX_VALUE_Y = y[i][j];
+        }
+    }
+    if(MAX_VALUE_Y == 0)
+        MAX_VALUE_Y = 1;
+    double MAX_VALUE = max(MAX_VALUE_X,MAX_VALUE_Y);
+    for(uint i=0;i<x.size();i++)
+    {
+        for(uint j=0;j<x[0].size();j++)
+        {
+            x[i][j] = x[i][j]/MAX_VALUE*n+a;
+        }
+    }
+    for(uint i=0;i<y.size();i++)
+    {
+        for(uint j=0;j<y[0].size();j++)
+        {
+            y[i][j] = y[i][j]/MAX_VALUE*n+a;
         }
     }
     return MAX_VALUE/n;
