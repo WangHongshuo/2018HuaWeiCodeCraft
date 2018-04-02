@@ -15,6 +15,7 @@ int trainDataFlavorCount[16][2];
 int predictDataFlavorCount[16][2];
 double predictDataFlavorCount_1[16][2];
 double predictDataFlavorCount_2[16][2];
+double predictDataFlavorCount_3[16][2];
 int predictVMCount = 0;
 int predictPhyServerCount = 0;
 vector<phyServer> server;
@@ -95,16 +96,21 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictDataFlavorCount_1[i][1] = 0;
         predictDataFlavorCount_2[i][0] = serverInfo.flavorType[i];
         predictDataFlavorCount_2[i][1] = 0;
+        predictDataFlavorCount_3[i][0] = serverInfo.flavorType[i];
+        predictDataFlavorCount_3[i][1] = 0;
     }
 
     // 预测模型（只可启用一种模型，不启用的模型注释掉）
 
     // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
     ESModel(predictDataFlavorCount_1,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
-    twoDModel(predictDataFlavorCount_2,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
+    twoDESModel(predictDataFlavorCount_2,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
+    threeDESModel(predictDataFlavorCount_3,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.5+predictDataFlavorCount_2[i][1]*0.5);
+        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.5+
+                                            predictDataFlavorCount_2[i][1]*0.3+
+                                            predictDataFlavorCount_3[i][1]*0.2);
         if(predictDataFlavorCount[i][1] < 0)
             predictDataFlavorCount[i][1] = 0;
     }
@@ -705,7 +711,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
 }
 
 // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
-void twoDModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
+void twoDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
 {
     // 将vector数据放入数组中
     // int[i][0]为flavor类型
@@ -981,4 +987,159 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
         predictArray[i][1] = (packedArray[i][packedArrayLength]*1.1);
+}
+
+// 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
+void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
+{
+    // 将vector数据放入数组中
+    // int[i][0]为flavor类型
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    vector<vector<int>> trainDataArray(1+serverInfo.flavorTypeCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+        trainDataArray[i].resize(1+trainDataDayCount+predictDaysCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        trainDataArray[i][0] = serverInfo.flavorType[i];
+        for(int j=1;j<=trainDataDayCount;j++)
+            trainDataArray[i][j] = vTrainData[j].flavorCount[serverInfo.flavorType[i]];
+    }
+
+    // 输出用例（输出全部可输出数据）：
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=trainDataDayCount;j++)
+//            cout << trainDataArray[i][j] << " ";
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    // 输出数据到文件
+//    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=trainDataDayCount;j++)
+//            output << trainDataArray[i][j] << " ";
+//        output << '\n';
+//    }
+//    system("pause");
+
+    // 可用参数：
+    // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    // 训练数据天数trainDataDayCount，预测天数predictDaysCount
+    // 物理服务器信息serverInfo（flavor种类数量serverInfo.flavorTypeCount）
+    //　输出参数：predictArray
+    // predictArray[i][0]为flavor的类型，已经初始化
+    // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
+    // TODO
+
+    // 指数平滑预测
+    double alpha = 0.05;
+    int dataLength = trainDataDayCount+predictDaysCount;
+    int packSize = predictDaysCount;
+    int packedArrayLength = 1+dataLength-packSize;
+
+    vector<vector <double>> packedArray(1+serverInfo.flavorTypeCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+        packedArray[i].resize(1+packedArrayLength);
+
+    // 以预测天数打包
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+       packedArray[i][0] = trainDataArray[i][0];
+    }
+    //
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        for(int j=1;j<=packedArrayLength-packSize;j++)
+        {
+            for(int k=0;k<packSize;k++)
+            {
+                packedArray[i][j] += trainDataArray[i][j+k];
+            }
+        }
+    }
+    // 初始化需要预测的部分
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        for(int j=packedArrayLength-packSize+1;j<=packedArrayLength;j++)
+            packedArray[i][j] = 0;
+    }
+    // 输出用例（输出全部可输出数据）：
+//    cout << "Packed Array:" << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=PackedTrainArrayLength;j++)
+//            cout << packedTrainArray[i][j] << " ";
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    // 指数平滑法
+    vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
+    vector<vector<double>> S2(1+serverInfo.flavorTypeCount);
+    vector<vector<double>> S3(1+serverInfo.flavorTypeCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        S1[i].resize(1+packedArrayLength);
+        S2[i].resize(1+packedArrayLength);
+        S3[i].resize(1+packedArrayLength);
+    }
+
+    int initialPackSize = predictDaysCount;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        S1[i][0] = 0.0;
+        for(int j=1;j<=initialPackSize;j++)
+            S1[i][0] += packedArray[i][j];
+        S1[i][0] /= initialPackSize;
+        // 开始预测，预测已知数据
+        for(int j=1;j<=packedArrayLength-predictDaysCount;j++)
+        {
+            S1[i][j] = alpha*packedArray[i][j]+(1-alpha)*S1[i][j-1];
+        }
+        S1[i][0] = packedArray[i][0];
+        S2[i][1] = S1[i][1];
+        for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
+        {
+            S2[i][j] = alpha*S1[i][j]+(1-alpha)*S2[i][j-1];
+        }
+        S3[i][1] = S2[i][1];
+        for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
+        {
+            S3[i][j] = alpha*S2[i][j]+(1-alpha)*S3[i][j-1];
+        }
+        double a = 3*S1[i][packedArrayLength-predictDaysCount]-3*S2[i][packedArrayLength-predictDaysCount]+
+                S3[i][packedArrayLength-predictDaysCount];
+        double b = alpha/2/pow(1-alpha,2)*((6-5*alpha)*S1[i][packedArrayLength-predictDaysCount]-
+                2*(5-4*alpha)*S2[i][packedArrayLength-predictDaysCount]+(4-3*alpha)*S3[i][packedArrayLength-predictDaysCount]);
+        double c = pow(alpha,2)/2/pow(1-alpha,2)*(S1[i][packedArrayLength-predictDaysCount]-
+                2*S2[i][packedArrayLength-predictDaysCount]+S3[i][packedArrayLength-predictDaysCount]);
+        packedArray[i][packedArrayLength] = a+b*predictDaysCount+c*pow(predictDaysCount,2);
+    }
+    // 输出用例（输出全部可输出数据）：
+//    cout << "S1[i] Array:" << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=packedArrayLength;j++)
+//            cout << S1[i][j] << " ";
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+//    cout << "PackedArray[i]" << endl;
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=packedArrayLength;j++)
+//            cout << packedArray[i][j] << " ";
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        predictArray[i][1] = ceil(packedArray[i][packedArrayLength]*1.1);
+        if(predictArray[i][1] < 0)
+            predictArray[i][1] = 0;
+    }
 }
