@@ -737,7 +737,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-    double alpha = 0.2;
+    double alpha = 0.05;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -840,7 +840,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        predictArray[i][1] = ceil(packedArray[i][packedArrayLength]);
+        predictArray[i][1] = ceil(packedArray[i][packedArrayLength]*1.1);
         if(predictArray[i][1] < 0)
             predictArray[i][1] = 0;
     }
