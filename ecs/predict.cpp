@@ -737,7 +737,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-    double alpha = 0.11;
+    double alpha = 0.2;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -781,10 +781,12 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // 指数平滑法
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
     vector<vector<double>> S2(1+serverInfo.flavorTypeCount);
+    vector<vector<double>> S3(1+serverInfo.flavorTypeCount);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         S1[i].resize(1+packedArrayLength);
         S2[i].resize(1+packedArrayLength);
+        S3[i].resize(1+packedArrayLength);
     }
 
     int initialPackSize = predictDaysCount;
@@ -800,14 +802,23 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
             S1[i][j] = alpha*packedArray[i][j]+(1-alpha)*S1[i][j-1];
         }
         S1[i][0] = packedArray[i][0];
-        S2[i][1] = S1[i][i];
+        S2[i][1] = S1[i][1];
         for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
         {
             S2[i][j] = alpha*S1[i][j]+(1-alpha)*S2[i][j-1];
         }
-        double a = 2*S1[i][packedArrayLength-predictDaysCount]-S2[i][packedArrayLength-predictDaysCount];
-        double b = alpha/(1-alpha)*(S1[i][packedArrayLength-predictDaysCount]-S2[i][packedArrayLength-predictDaysCount]);
-        packedArray[i][packedArrayLength] = a+b*predictDaysCount;
+        S3[i][1] = S2[i][1];
+        for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
+        {
+            S3[i][j] = alpha*S2[i][j]+(1-alpha)*S3[i][j-1];
+        }
+        double a = 3*S1[i][packedArrayLength-predictDaysCount]-3*S2[i][packedArrayLength-predictDaysCount]+
+                S3[i][packedArrayLength-predictDaysCount];
+        double b = alpha/2/pow(1-alpha,2)*((6-5*alpha)*S1[i][packedArrayLength-predictDaysCount]-
+                2*(5-4*alpha)*S2[i][packedArrayLength-predictDaysCount]+(4-3*alpha)*S3[i][packedArrayLength-predictDaysCount]);
+        double c = pow(alpha,2)/2/pow(1-alpha,2)*(S1[i][packedArrayLength-predictDaysCount]-
+                2*S2[i][packedArrayLength-predictDaysCount]+S3[i][packedArrayLength-predictDaysCount]);
+        packedArray[i][packedArrayLength] = a+b*predictDaysCount+c*pow(predictDaysCount,2);
     }
     // 输出用例（输出全部可输出数据）：
 //    cout << "S1[i] Array:" << endl;
