@@ -894,7 +894,7 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
     // TODO
 
     // 指数平滑预测
-    double a = 0.48;
+    double a = 0.6;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -942,14 +942,14 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
     int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        S1[i][0] = 0.0;
+        S1[i][1] = 0.0;
         for(int j=1;j<=initialPackSize;j++)
-            S1[i][0] += packedArray[i][j];
-        S1[i][0] /= initialPackSize;
+            S1[i][1] += packedArray[i][j];
+        S1[i][1] /= initialPackSize;
         // 开始预测，预测已知数据
-        for(int j=1;j<=packedArrayLength-packSize;j++)
+        for(int j=2;j<=packedArrayLength-packSize;j++)
         {
-            S1[i][j] = a*packedArray[i][j]+(1-a)*S1[i][j-1];
+            S1[i][j] = a*packedArray[i][j-1]+(1-a)*S1[i][j-1];
         }
         S1[i][0] = packedArray[i][0];
         // 预测未知数据
@@ -957,7 +957,7 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
         {
             packedArray[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j-1]+
                     (1-a)*S1[i][packedArrayLength-packSize+j-1];
-            S1[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j]+
+            S1[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j-1]+
                     (1-a)*S1[i][packedArrayLength-packSize+j-1];
         }
     }
