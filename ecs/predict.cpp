@@ -737,7 +737,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // TODO
 
     // 指数平滑预测
-    double a = 0.48;
+    double alpha = 0.1;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -780,8 +780,13 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
     // 指数平滑法
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
+    vector<vector<double>> S2(1+serverInfo.flavorTypeCount);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
         S1[i].resize(1+packedArrayLength);
+        S2[i].resize(1+packedArrayLength);
+    }
+
     int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
@@ -790,19 +795,19 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
             S1[i][0] += packedArray[i][j];
         S1[i][0] /= initialPackSize;
         // 开始预测，预测已知数据
-        for(int j=1;j<=packedArrayLength-packSize;j++)
+        for(int j=1;j<=packedArrayLength-predictDaysCount;j++)
         {
-            S1[i][j] = a*packedArray[i][j]+(1-a)*S1[i][j-1];
+            S1[i][j] = alpha*packedArray[i][j]+(1-alpha)*S1[i][j-1];
         }
         S1[i][0] = packedArray[i][0];
-        // 预测未知数据
-        for(int j=1;j<=predictDaysCount;j++)
+        S2[i][1] = S1[i][i];
+        for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
         {
-            packedArray[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j-1]+
-                    (1-a)*S1[i][packedArrayLength-packSize+j-1];
-            S1[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j]+
-                    (1-a)*S1[i][packedArrayLength-packSize+j-1];
+            S2[i][j] = alpha*S1[i][j]+(1-alpha)*S2[i][j-1];
         }
+        double a = 2*S1[i][packedArrayLength-predictDaysCount]-S2[i][packedArrayLength-predictDaysCount];
+        double b = alpha/(1-alpha)*(S1[i][packedArrayLength-predictDaysCount]-S2[i][packedArrayLength-predictDaysCount]);
+        packedArray[i][packedArrayLength] = a+b*predictDaysCount;
     }
     // 输出用例（输出全部可输出数据）：
 //    cout << "S1[i] Array:" << endl;
@@ -823,5 +828,9 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 //    cout << "=================" << endl;
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
         predictArray[i][1] = ceil(packedArray[i][packedArrayLength]);
+        if(predictArray[i][1] < 0)
+            predictArray[i][1] = 0;
+    }
 }
