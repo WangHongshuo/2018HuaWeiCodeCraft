@@ -782,13 +782,10 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
         S1[i].resize(1+packedArrayLength);
-    int initialPackSize = predictDaysCount;
+//    int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        S1[i][0] = 0.0;
-        for(int j=1;j<=initialPackSize;j++)
-            S1[i][0] += packedArray[i][j];
-        S1[i][0] /= initialPackSize;
+        S1[i][0] = packedArray[i][1];
         // 开始预测，预测已知数据
         for(int j=1;j<=packedArrayLength-packSize;j++)
         {
