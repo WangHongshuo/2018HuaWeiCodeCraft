@@ -227,9 +227,40 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
 {
     if(target.optimizedTarget == CPU)
     {
-        quickSort(1,target.flavorTypeCount,target.flavorType);
+        // 先根据CPU大小排序，后根据MEM大小对相投CPU之间进行微调
+        int cpu[16];
+        int left,right;
+        left = right = 1;
+        for(int i=1;i<=target.flavorTypeCount;i++)
+            cpu[i] = FLAVOR[target.flavorType[i]][0];
+        quickSortMinToMax(1,target.flavorTypeCount,cpu,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
+        while(right <= target.flavorTypeCount)
+        {
+            for(int i=1;i<4;i++)
+            {
+                if(FLAVOR[target.flavorType[left]][0] == FLAVOR[target.flavorType[left+i]][0])
+                {
+                    right++;
+                    continue;
+                }
+                else if(left == right)
+                {
+                    left = right = right+1;
+                    break;
+                }
+                else
+                {
+                    quickSortMaxToMin(left,right,target.flavorType);
+                    left = right = right+1;
+                    break;
+                }
+            }
+        }
+//        for(int i=1;i<=target.flavorTypeCount;i++)
+//            cout << target.flavorType[i] << " ";
+//        cout << endl;
     }
     else
     {
@@ -239,7 +270,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
             mem[i] = FLAVOR[target.flavorType[i]][1];
-        quickSort(1,target.flavorTypeCount,mem,target.flavorType);
+        quickSortMinToMax(1,target.flavorTypeCount,mem,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
 //        cout << endl;
@@ -259,7 +290,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
                 }
                 else
                 {
-                    quickSort(left,right,target.flavorType);
+                    quickSortMaxToMin(left,right,target.flavorType);
                     left = right = right+1;
                     break;
                 }
@@ -269,10 +300,11 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
 //            cout << target.flavorType[i] << " ";
 //        cout << endl;
     }
+//    system("pause");
 }
 
 // 快速排序
-void quickSort(int left, int right, int *array)
+void quickSortMinToMax(int left, int right, int *array)
 {
     int flag = 0;
     int l = left;
@@ -312,13 +344,13 @@ void quickSort(int left, int right, int *array)
             }
         }while(l < r);
         array[l] = temp;
-        quickSort(left,l-1,array);
-        quickSort(r+1,right,array);
+        quickSortMinToMax(left,l-1,array);
+        quickSortMinToMax(r+1,right,array);
     }
 }
 
 // 快速排序，根据array大小排序index,array必须和index有相同大小
-void quickSort(int left, int right, int *array, int *index)
+void quickSortMinToMax(int left, int right, int *array, int *index)
 {
     int flag = 0;
     int l = left;
@@ -362,8 +394,104 @@ void quickSort(int left, int right, int *array, int *index)
         }while(l < r);
         array[l] = temp;
         index[l] = tempIndex;
-        quickSort(left,l-1,array,index);
-        quickSort(r+1,right,array,index);
+        quickSortMinToMax(left,l-1,array,index);
+        quickSortMinToMax(r+1,right,array,index);
+    }
+}
+
+// 快速排序
+void quickSortMaxToMin(int left, int right, int *array)
+{
+    int flag = 0;
+    int l = left;
+    int r = right;
+    int length = right - left + 1;
+    int temp;
+    if(length > 1)
+    {
+        temp = array[left];
+        do
+        {
+            if(flag == 0)
+            {
+                if(temp >= array[r])
+                {
+                    r--;
+                    continue;
+                }
+                else
+                {
+                    array[l] = array[r];
+                    flag = 1;
+                }
+            }
+            else
+            {
+                if(temp <= array[l])
+                {
+                    l++;
+                    continue;
+                }
+                else
+                {
+                    array[r] = array[l];
+                    flag = 0;
+                }
+            }
+        }while(l < r);
+        array[l] = temp;
+        quickSortMaxToMin(left,l-1,array);
+        quickSortMaxToMin(r+1,right,array);
+    }
+}
+
+// 快速排序，根据array大小排序index,array必须和index有相同大小
+void quickSortMaxToMin(int left, int right, int *array, int *index)
+{
+    int flag = 0;
+    int l = left;
+    int r = right;
+    int length = right - left + 1;
+    int temp,tempIndex;
+    if(length > 1)
+    {
+        temp = array[left];
+        tempIndex = index[left];
+        do
+        {
+            if(flag == 0)
+            {
+                if(temp >= array[r])
+                {
+                    r--;
+                    continue;
+                }
+                else
+                {
+                    array[l] = array[r];
+                    index[l] = index[r];
+                    flag = 1;
+                }
+            }
+            else
+            {
+                if(temp <= array[l])
+                {
+                    l++;
+                    continue;
+                }
+                else
+                {
+                    array[r] = array[l];
+                    index[r] = index[l];
+                    flag = 0;
+                }
+            }
+        }while(l < r);
+        array[l] = temp;
+        index[l] = tempIndex;
+        quickSortMaxToMin(left,l-1,array,index);
+        quickSortMaxToMin(r+1,right,array,index);
     }
 }
 
