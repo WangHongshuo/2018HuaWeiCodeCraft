@@ -727,23 +727,23 @@ void twoDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
     }
 
     // 输出用例（输出全部可输出数据）：
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            cout << trainDataArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=trainDataDayCount;j++)
+    //            cout << trainDataArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     // 输出数据到文件
-//    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            output << trainDataArray[i][j] << " ";
-//        output << '\n';
-//    }
-//    system("pause");
+    //    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=trainDataDayCount;j++)
+    //            output << trainDataArray[i][j] << " ";
+    //        output << '\n';
+    //    }
+    //    system("pause");
 
     // 可用参数：
     // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
@@ -768,7 +768,7 @@ void twoDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
     // 以预测天数打包
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-       packedArray[i][0] = trainDataArray[i][0];
+        packedArray[i][0] = trainDataArray[i][0];
     }
     //
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
@@ -788,14 +788,14 @@ void twoDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
             packedArray[i][j] = 0;
     }
     // 输出用例（输出全部可输出数据）：
-//    cout << "Packed Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=PackedTrainArrayLength;j++)
-//            cout << packedTrainArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    cout << "Packed Array:" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=PackedTrainArrayLength;j++)
+    //            cout << packedTrainArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     // 指数平滑法
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
@@ -806,20 +806,17 @@ void twoDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
         S2[i].resize(1+packedArrayLength);
     }
 
-    int initialPackSize = predictDaysCount;
+    //    int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        S1[i][0] = 0.0;
-        for(int j=1;j<=initialPackSize;j++)
-            S1[i][0] += packedArray[i][j];
-        S1[i][0] /= initialPackSize;
+        S1[i][1] = packedArray[i][1];
         // 开始预测，预测已知数据
-        for(int j=1;j<=packedArrayLength-predictDaysCount;j++)
+        for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
         {
             S1[i][j] = alpha*packedArray[i][j]+(1-alpha)*S1[i][j-1];
         }
         S1[i][0] = packedArray[i][0];
-        S2[i][1] = S1[i][i];
+        S2[i][1] = S1[i][1];
         for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
         {
             S2[i][j] = alpha*S1[i][j]+(1-alpha)*S2[i][j-1];
@@ -829,28 +826,26 @@ void twoDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
         packedArray[i][packedArrayLength] = a+b*predictDaysCount;
     }
     // 输出用例（输出全部可输出数据）：
-//    cout << "S1[i] Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=packedArrayLength;j++)
-//            cout << S1[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-//    cout << "PackedArray[i]" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=packedArrayLength;j++)
-//            cout << packedArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    cout << "S1[i] Array:" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=packedArrayLength;j++)
+    //            cout << S1[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
+    //    cout << "PackedArray[i]" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=packedArrayLength;j++)
+    //            cout << packedArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         predictArray[i][1] = ceil(packedArray[i][packedArrayLength]);
-        if(predictArray[i][1] < 0)
-            predictArray[i][1] = 0;
     }
 }
 
@@ -871,23 +866,23 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
     }
 
     // 输出用例（输出全部可输出数据）：
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            cout << trainDataArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=trainDataDayCount;j++)
+    //            cout << trainDataArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     // 输出数据到文件
-//    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            output << trainDataArray[i][j] << " ";
-//        output << '\n';
-//    }
-//    system("pause");
+    //    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=trainDataDayCount;j++)
+    //            output << trainDataArray[i][j] << " ";
+    //        output << '\n';
+    //    }
+    //    system("pause");
 
     // 可用参数：
     // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
@@ -900,7 +895,7 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
     // TODO
 
     // 指数平滑预测
-    double a = 0.6;
+    double a = 0.48;
     int dataLength = trainDataDayCount+predictDaysCount;
     int packSize = predictDaysCount;
     int packedArrayLength = 1+dataLength-packSize;
@@ -912,7 +907,7 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
     // 以预测天数打包
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-       packedArray[i][0] = trainDataArray[i][0];
+        packedArray[i][0] = trainDataArray[i][0];
     }
     //
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
@@ -932,30 +927,27 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
             packedArray[i][j] = 0;
     }
     // 输出用例（输出全部可输出数据）：
-//    cout << "Packed Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=PackedTrainArrayLength;j++)
-//            cout << packedTrainArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    cout << "Packed Array:" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=PackedTrainArrayLength;j++)
+    //            cout << packedTrainArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     // 指数平滑法
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
         S1[i].resize(1+packedArrayLength);
-    int initialPackSize = predictDaysCount;
+    //    int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        S1[i][1] = 0.0;
-        for(int j=1;j<=initialPackSize;j++)
-            S1[i][1] += packedArray[i][j];
-        S1[i][1] /= initialPackSize;
+        S1[i][0] = packedArray[i][1];
         // 开始预测，预测已知数据
-        for(int j=2;j<=packedArrayLength-packSize;j++)
+        for(int j=1;j<=packedArrayLength-packSize;j++)
         {
-            S1[i][j] = a*packedArray[i][j-1]+(1-a)*S1[i][j-1];
+            S1[i][j] = a*packedArray[i][j]+(1-a)*S1[i][j-1];
         }
         S1[i][0] = packedArray[i][0];
         // 预测未知数据
@@ -963,27 +955,27 @@ void ESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int t
         {
             packedArray[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j-1]+
                     (1-a)*S1[i][packedArrayLength-packSize+j-1];
-            S1[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j-1]+
+            S1[i][packedArrayLength-packSize+j] = a*packedArray[i][packedArrayLength-packSize+j]+
                     (1-a)*S1[i][packedArrayLength-packSize+j-1];
         }
     }
     // 输出用例（输出全部可输出数据）：
-//    cout << "S1[i] Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=packedArrayLength;j++)
-//            cout << S1[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-//    cout << "PackedArray[i]" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=packedArrayLength;j++)
-//            cout << packedArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    cout << "S1[i] Array:" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=packedArrayLength;j++)
+    //            cout << S1[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
+    //    cout << "PackedArray[i]" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=packedArrayLength;j++)
+    //            cout << packedArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
         predictArray[i][1] = (packedArray[i][packedArrayLength]*1.1);
@@ -1006,23 +998,23 @@ void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData,
     }
 
     // 输出用例（输出全部可输出数据）：
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            cout << trainDataArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=trainDataDayCount;j++)
+    //            cout << trainDataArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     // 输出数据到文件
-//    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=trainDataDayCount;j++)
-//            output << trainDataArray[i][j] << " ";
-//        output << '\n';
-//    }
-//    system("pause");
+    //    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=trainDataDayCount;j++)
+    //            output << trainDataArray[i][j] << " ";
+    //        output << '\n';
+    //    }
+    //    system("pause");
 
     // 可用参数：
     // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
@@ -1047,7 +1039,7 @@ void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData,
     // 以预测天数打包
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-       packedArray[i][0] = trainDataArray[i][0];
+        packedArray[i][0] = trainDataArray[i][0];
     }
     //
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
@@ -1067,14 +1059,14 @@ void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData,
             packedArray[i][j] = 0;
     }
     // 输出用例（输出全部可输出数据）：
-//    cout << "Packed Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=PackedTrainArrayLength;j++)
-//            cout << packedTrainArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    cout << "Packed Array:" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=PackedTrainArrayLength;j++)
+    //            cout << packedTrainArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     // 指数平滑法
     vector<vector <double>> S1(1+serverInfo.flavorTypeCount);
@@ -1087,15 +1079,12 @@ void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData,
         S3[i].resize(1+packedArrayLength);
     }
 
-    int initialPackSize = predictDaysCount;
+    //    int initialPackSize = predictDaysCount;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        S1[i][0] = 0.0;
-        for(int j=1;j<=initialPackSize;j++)
-            S1[i][0] += packedArray[i][j];
-        S1[i][0] /= initialPackSize;
+        S1[i][1] = packedArray[i][1];
         // 开始预测，预测已知数据
-        for(int j=1;j<=packedArrayLength-predictDaysCount;j++)
+        for(int j=2;j<=packedArrayLength-predictDaysCount;j++)
         {
             S1[i][j] = alpha*packedArray[i][j]+(1-alpha)*S1[i][j-1];
         }
@@ -1119,27 +1108,25 @@ void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData,
         packedArray[i][packedArrayLength] = a+b*predictDaysCount+c*pow(predictDaysCount,2);
     }
     // 输出用例（输出全部可输出数据）：
-//    cout << "S1[i] Array:" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=packedArrayLength;j++)
-//            cout << S1[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
-//    cout << "PackedArray[i]" << endl;
-//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-//    {
-//        for(int j=0;j<=packedArrayLength;j++)
-//            cout << packedArray[i][j] << " ";
-//        cout << endl;
-//    }
-//    cout << "=================" << endl;
+    //    cout << "S1[i] Array:" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=packedArrayLength;j++)
+    //            cout << S1[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
+    //    cout << "PackedArray[i]" << endl;
+    //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    //    {
+    //        for(int j=0;j<=packedArrayLength;j++)
+    //            cout << packedArray[i][j] << " ";
+    //        cout << endl;
+    //    }
+    //    cout << "=================" << endl;
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         predictArray[i][1] = ceil(packedArray[i][packedArrayLength]*1.1);
-        if(predictArray[i][1] < 0)
-            predictArray[i][1] = 0;
     }
 }
