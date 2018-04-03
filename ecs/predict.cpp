@@ -823,5 +823,5 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 //    cout << "=================" << endl;
 
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
-        predictArray[i][1] = ceil(packedArray[i][packedArrayLength]);
+        predictArray[i][1] = ceil(packedArray[i][packedArrayLength]*1.1);
 }
