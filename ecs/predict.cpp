@@ -227,20 +227,21 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
 {
     if(target.optimizedTarget == CPU)
     {
-        // 先根据CPU大小排序，后根据MEM大小对相投CPU之间进行微调
-        int cpu[16];
+        // 先根据delta大小排序，后根据MEM大小对相投CPU之间进行微调
+        int delta[16];
         int left,right;
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
-            cpu[i] = FLAVOR[target.flavorType[i]][0];
-        quickSortMinToMax(1,target.flavorTypeCount,cpu,target.flavorType);
+            delta[i] = FLAVOR_DELTA[target.flavorType[i]];
+        quickSortMaxToMin(1,target.flavorTypeCount,delta,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
+//        cout << endl;
         while(right <= target.flavorTypeCount)
         {
-            for(int i=1;i<4;i++)
+            for(int i=1;i<6;i++)
             {
-                if(FLAVOR[target.flavorType[left]][0] == FLAVOR[target.flavorType[left+i]][0])
+                if(FLAVOR_DELTA[target.flavorType[left]] == FLAVOR_DELTA[target.flavorType[left+i]])
                 {
                     right++;
                     continue;
@@ -252,7 +253,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
                 }
                 else
                 {
-                    quickSortMaxToMin(left,right,target.flavorType);
+                    quickSortMinToMax(left,right,target.flavorType);
                     left = right = right+1;
                     break;
                 }
@@ -264,21 +265,21 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
     }
     else
     {
-        // 先根据MEM大小排序，后根据CPU大小对相投MEM之间进行微调
-        int mem[16];
+        // 先根据delta大小排序，后根据MEM大小进行微调
+        int delta[16];
         int left,right;
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
-            mem[i] = FLAVOR[target.flavorType[i]][1];
-        quickSortMinToMax(1,target.flavorTypeCount,mem,target.flavorType);
+            delta[i] = FLAVOR_DELTA[target.flavorType[i]];
+        quickSortMinToMax(1,target.flavorTypeCount,delta,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
 //        cout << endl;
         while(right <= target.flavorTypeCount)
         {
-            for(int i=1;i<4;i++)
+            for(int i=1;i<6;i++)
             {
-                if(FLAVOR[target.flavorType[left]][1] == FLAVOR[target.flavorType[left+i]][1])
+                if(FLAVOR_DELTA[target.flavorType[left]] == FLAVOR_DELTA[target.flavorType[left+i]])
                 {
                     right++;
                     continue;
@@ -290,7 +291,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
                 }
                 else
                 {
-                    quickSortMaxToMin(left,right,target.flavorType);
+                    quickSortMinToMax(left,right,target.flavorType);
                     left = right = right+1;
                     break;
                 }
