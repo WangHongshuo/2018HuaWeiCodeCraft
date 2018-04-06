@@ -7,6 +7,7 @@
 #include <math.h>
 #include <string.h>
 #include <string>
+#include <float.h>
 #include "lib_io.h"
 
 #define CPU 67

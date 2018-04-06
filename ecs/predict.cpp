@@ -749,19 +749,51 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // 设置滑动窗口参数
     vector<double> window(predictDaysCount);
     double delta = 1.0/predictDaysCount;
-    for(int i=0;i<predictDaysCount;i++)
-        window[i] = delta*(i+1);
+
     // 滑动线性预测
     double temp = 0.0;
+    double step = 0.0001;
     vector<vector<double>> pArray(1+serverInfo.flavorTypeCount);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
+        double alpha = 0.5;
+        int it = 5000;
+        double error = DBL_MAX;
         pArray[i].resize(1+trainDataDayCount+predictDaysCount);
+        while(it)
+        {
+            for(int j=0;j<predictDaysCount;j++)
+                window[j] = delta*(7-j)*alpha;
+            // 预测
+            temp = 0.0;
+            for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
+            {
+                for(int k=0;k<predictDaysCount;k++)
+                    temp += accArray[i][j-predictDaysCount+k]*window[k];
+                pArray[i][j] = temp;
+                temp = 0.0;
+            }
+            // 计算误差
+            temp = 0.0;
+            for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
+                temp += pow(accArray[i][j]-pArray[i][j],2);
+            if(temp < error)
+            {
+                error = temp;
+                alpha -= step;
+            }
+            else
+            {
+                alpha += step;
+                break;
+            }
+            it--;
+        }
+        // 预测
         for(int j=predictDaysCount+1;j<=trainDataDayCount+predictDaysCount;j++)
         {
             for(int k=0;k<predictDaysCount;k++)
-               temp += accArray[i][j-predictDaysCount+k]*window[k];
-            temp *= 0.28;
+                temp += accArray[i][j-predictDaysCount+k]*window[k];
             pArray[i][j] = temp;
             temp = 0.0;
             if(j > trainDataDayCount)
