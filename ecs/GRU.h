@@ -54,7 +54,7 @@ public:
     void matTanhF(const vector<double> &vec, vector<double> &vecOutput);
     void matTanhB(const vector<double> &vec, vector<double> &vecOutput);
 
-    void getPredictArray(vector<double> &output);
+    double getPredictData();
     vector<vector<double>> x;
     vector<vector<double>> y;
 
@@ -64,6 +64,8 @@ private:
     double getError(vector<vector<double>> &fit, vector<vector<double>> &target);
     double squrshTo(vector<vector<double> > &src, double a, double b);
     double squrshTo(vector<vector<double> > &x, vector<vector<double> > &y, double a, double b);
+    void uniformX(vector<vector<double>> &input);
+    void uniformY(vector<vector<double>> &input, double &y_avg, double &y_std, double &y_max, double &y_min);
     void clearBackwardTempValues();
     int uNum;
     int xDim;
@@ -78,6 +80,7 @@ private:
     double scaleX = 0.0;
     double scaleY = 0.0;
     double targetError = 0.0;
+    double y_AVG, y_STD, y_MAX, y_MIN;
 
     vector<vector<double>> Wy;
     vector<vector<double>> Wr;

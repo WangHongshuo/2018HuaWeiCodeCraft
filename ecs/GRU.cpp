@@ -33,7 +33,8 @@ void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double
 // 主体函数，error与matla仿真前6循环一致
 void GRU::startTrainning()
 {
-    scaleY = squrshTo(x,y,0.0,1.0);
+    uniformX(x);
+    uniformY(y,y_AVG,y_STD,y_MAX,y_MIN);
     x = matT(x);
     y = matT(y);
     for(int loop=0;loop<iterateNum;loop++)
@@ -364,13 +365,12 @@ void GRU::startTrainning()
         if(t > uNum-pNum-tNum-1)
         {
             for(int i=0;i<tNum;i++)
-                x[t+i+1][tNum-i-1] = yValue[t][0];
+                x[t+i+1][i] = yValue[t][0];
         }
     }
 
     // 恢复压缩的输出
     cout << "Min Error is " << minError << endl;
-    matDotMul(scaleY,yValue,yValue);
 }
 
 double GRU::sigmoidForward(double x)
@@ -451,16 +451,13 @@ void GRU::matTanhB(const vector<double> &vec, vector<double> &vecOutput)
     }
 }
 
-void GRU::getPredictArray(vector<double> &output)
+double GRU::getPredictData()
 {
-    if(output.size() != yValue.size())
-    {
-        cout << "Error in return predict Y!" << endl;
-        return;
-    }
-    for(uint i=0;i<yValue.size();i++)
-        output[i] = yValue[i][0];
+    double p = yValue[uNum-pNum-1][0]-yValue[uNum-pNum-tNum][0];
+    p = p*(y_MAX-y_MIN)*y_STD;
+    return p;
 }
+
 
 // 分配空间
 void GRU::initCell()
@@ -708,6 +705,65 @@ double GRU::squrshTo(vector<vector<double>> &x, vector<vector<double>> &y, doubl
         }
     }
     return MAX_VALUE/n;
+}
+
+void GRU::uniformX(vector<vector<double> > &input)
+{
+    double tempSum, tempAvg, tempStd, tempMax, tempMin;
+    for(uint i=0;i<input.size();i++)
+    {
+        tempSum = 0.0;
+        for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
+            tempSum += input[i][j];
+        tempAvg = tempSum/double(uNum-tNum-pNum+i+1);
+        tempSum = 0.0;
+        for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
+            tempSum += pow(input[i][j]-tempAvg,2);
+        tempStd = tempSum/double(uNum-tNum-pNum+i+1);
+        tempStd = sqrt(tempStd);
+        for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
+            input[i][j] = (input[i][j]-tempAvg)/tempStd;
+        tempMax = tempMin = input[i][0];
+        for(uint j=1;j<uNum-tNum-pNum+i+1;j++)
+        {
+            if(input[i][j] > tempMax)
+                tempMax = input[i][j];
+            if(input[i][j] < tempMin)
+                tempMin = input[i][j];
+        }
+        for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
+            input[i][j] = input[i][j]/(tempMax-tempMin);
+    }
+}
+
+void GRU::uniformY(vector<vector<double> > &input, double &y_avg, double &y_std, double &y_max, double &y_min)
+{
+    double tempSum, tempAvg, tempStd, tempMax, tempMin;
+    tempSum = 0.0;
+    for(int j=0;j<uNum-tNum-pNum;j++)
+        tempSum += input[0][j];
+    tempAvg = tempSum/double(uNum-tNum-pNum);
+    y_avg = tempAvg;
+    tempSum = 0.0;
+    for(int j=0;j<uNum-tNum-pNum;j++)
+        tempSum += pow(input[0][j]-tempAvg,2);
+    tempStd = tempSum/double(uNum-tNum-pNum);
+    tempStd = sqrt(tempStd);
+    y_std = tempStd;
+    for(int j=0;j<uNum-tNum-pNum;j++)
+        input[0][j] = (input[0][j]-tempAvg)/tempStd;
+    tempMax = tempMin = input[0][0];
+    for(int j=1;j<uNum-tNum-pNum;j++)
+    {
+        if(input[0][j] > tempMax)
+            tempMax = input[0][j];
+        if(input[0][j] < tempMin)
+            tempMin = input[0][j];
+    }
+    for(int j=0;j<uNum-tNum-pNum;j++)
+        input[0][j] = input[0][j]/(tempMax-tempMin);
+    y_max = tempMax;
+    y_min = tempMin;
 }
 
 void GRU::clearBackwardTempValues()
