@@ -55,6 +55,7 @@ public:
     void matTanhB(const vector<double> &vec, vector<double> &vecOutput);
 
     double getPredictData();
+    void setRandomSeed(int seed);
     vector<vector<double>> x;
     vector<vector<double>> y;
 
@@ -65,7 +66,7 @@ private:
     double squrshTo(vector<vector<double> > &src, double a, double b);
     double squrshTo(vector<vector<double> > &x, vector<vector<double> > &y, double a, double b);
     void uniformX(vector<vector<double>> &input);
-    void uniformY(vector<vector<double>> &input, double &y_avg, double &y_std, double &y_max, double &y_min);
+    void uniformY(vector<vector<double>> &input, double &y_avg, double &y_max, double &y_min, double &scale);
     void clearBackwardTempValues();
     int uNum;
     int xDim;
@@ -73,6 +74,7 @@ private:
     int hDim;
     int pNum;
     int tNum;
+    int randomSeed = 0;
     int iterateNum = -1;
     double step = 0.0;
     double minError = 0.0;
@@ -80,7 +82,7 @@ private:
     double scaleX = 0.0;
     double scaleY = 0.0;
     double targetError = 0.0;
-    double y_AVG, y_STD, y_MAX, y_MIN;
+    double y_AVG, y_MAX, y_MIN, y_SCALE = 0.7;
 
     vector<vector<double>> Wy;
     vector<vector<double>> Wr;

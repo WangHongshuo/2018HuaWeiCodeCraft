@@ -34,7 +34,7 @@ void GRU::setData(vector<vector<double> > &X, vector<vector<double> > &Y, double
 void GRU::startTrainning()
 {
     uniformX(x);
-    uniformY(y,y_AVG,y_STD,y_MAX,y_MIN);
+    uniformY(y,y_AVG,y_MAX,y_MIN,y_SCALE);
     x = matT(x);
     y = matT(y);
     for(int loop=0;loop<iterateNum;loop++)
@@ -454,10 +454,14 @@ void GRU::matTanhB(const vector<double> &vec, vector<double> &vecOutput)
 double GRU::getPredictData()
 {
     double p = yValue[uNum-pNum-1][0]-yValue[uNum-pNum-tNum][0];
-    p = p*(y_MAX-y_MIN)*y_STD;
+    p = p*(y_MAX-y_MIN)/y_SCALE;
     return p;
 }
 
+void GRU::setRandomSeed(int seed)
+{
+    randomSeed = seed;
+}
 
 // 分配空间
 void GRU::initCell()
@@ -597,7 +601,7 @@ void GRU::initCellValue()
 void GRU::fillWithRandomValue(vector<vector<double> > &mat, const double &a, const double &b)
 {
     default_random_engine dre;
-    dre.seed(time(0));
+    dre.seed(randomSeed);
     uniform_real_distribution<double> dr(a,b);
     for(uint i=0;i<mat.size();i++)
         for(uint j=0;j<mat[0].size();j++)
@@ -607,7 +611,7 @@ void GRU::fillWithRandomValue(vector<vector<double> > &mat, const double &a, con
 void GRU::fillWithRandomValue(vector<double> &vec, const double &a, const double &b)
 {
     default_random_engine dre;
-    dre.seed(time(0));
+    dre.seed(randomSeed);
     uniform_real_distribution<double> dr(a,b);
     for(uint i=0;i<vec.size();i++)
         vec[i] = dr(dre);
@@ -709,20 +713,17 @@ double GRU::squrshTo(vector<vector<double>> &x, vector<vector<double>> &y, doubl
 
 void GRU::uniformX(vector<vector<double> > &input)
 {
-    double tempSum, tempAvg, tempStd, tempMax, tempMin;
+    double tempSum, tempAvg, tempMax, tempMin;
     for(uint i=0;i<input.size();i++)
     {
         tempSum = 0.0;
         for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
             tempSum += input[i][j];
         tempAvg = tempSum/double(uNum-tNum-pNum+i+1);
-        tempSum = 0.0;
+
         for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
-            tempSum += pow(input[i][j]-tempAvg,2);
-        tempStd = tempSum/double(uNum-tNum-pNum+i+1);
-        tempStd = sqrt(tempStd);
-        for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
-            input[i][j] = (input[i][j]-tempAvg)/tempStd;
+            input[i][j] = (input[i][j]-tempAvg);
+
         tempMax = tempMin = input[i][0];
         for(uint j=1;j<uNum-tNum-pNum+i+1;j++)
         {
@@ -736,22 +737,18 @@ void GRU::uniformX(vector<vector<double> > &input)
     }
 }
 
-void GRU::uniformY(vector<vector<double> > &input, double &y_avg, double &y_std, double &y_max, double &y_min)
+void GRU::uniformY(vector<vector<double> > &input, double &y_avg, double &y_max, double &y_min, double &scale)
 {
-    double tempSum, tempAvg, tempStd, tempMax, tempMin;
+    double tempSum, tempAvg,tempMax, tempMin;
     tempSum = 0.0;
     for(int j=0;j<uNum-tNum-pNum;j++)
         tempSum += input[0][j];
     tempAvg = tempSum/double(uNum-tNum-pNum);
     y_avg = tempAvg;
-    tempSum = 0.0;
+
     for(int j=0;j<uNum-tNum-pNum;j++)
-        tempSum += pow(input[0][j]-tempAvg,2);
-    tempStd = tempSum/double(uNum-tNum-pNum);
-    tempStd = sqrt(tempStd);
-    y_std = tempStd;
-    for(int j=0;j<uNum-tNum-pNum;j++)
-        input[0][j] = (input[0][j]-tempAvg)/tempStd;
+        input[0][j] = (input[0][j]-tempAvg);
+
     tempMax = tempMin = input[0][0];
     for(int j=1;j<uNum-tNum-pNum;j++)
     {
@@ -761,7 +758,7 @@ void GRU::uniformY(vector<vector<double> > &input, double &y_avg, double &y_std,
             tempMin = input[0][j];
     }
     for(int j=0;j<uNum-tNum-pNum;j++)
-        input[0][j] = input[0][j]/(tempMax-tempMin);
+        input[0][j] = ((input[0][j]-tempMin)/(tempMax-tempMin))*scale;
     y_max = tempMax;
     y_min = tempMin;
 }

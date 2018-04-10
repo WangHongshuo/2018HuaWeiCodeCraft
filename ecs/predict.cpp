@@ -757,7 +757,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
     GRU gru;
     // 隐藏层，训练天数，预测天数
-    int hDim = ceil(double(trainDataDayCount)/double(4.5));
+    int hDim = ceil(double(trainDataDayCount)/double(2));
     int timeStep = predictDaysCount;
 
     // 组建训练数据,索引从0开始，x只需建立一次
@@ -775,7 +775,10 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     for(int i=0;i<serverInfo.flavorTypeCount;i++)
         predictY[i].resize(y[0].size());
 
-    gru.setParameters(7,trainDataDayCount,predictDaysCount,timeStep);
+    gru.setParameters(hDim,trainDataDayCount,predictDaysCount,timeStep);
+    int seed = 1523363508;
+    cout << "Seed: " << seed << endl;
+    gru.setRandomSeed(seed);
     // 循环训练所有数据
 
     // alpha
@@ -818,6 +821,6 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 
         predictArray[h][1] = ceil(gru.getPredictData());
         if(predictArray[h][1] < 0)
-            predictArray[h][1] = 0;
+            predictArray[h][1] = -predictArray[h][1];
     }
 }

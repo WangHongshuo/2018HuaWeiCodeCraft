@@ -7,6 +7,7 @@
 #include <math.h>
 #include <string.h>
 #include <string>
+#include <time.h>
 #include "GRU.h"
 #include "lib_io.h"
 
