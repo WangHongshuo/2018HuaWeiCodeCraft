@@ -68,6 +68,7 @@ private:
     void uniformX(vector<vector<double>> &input);
     void uniformY(vector<vector<double>> &input, double &y_avg, double &y_max, double &y_min, double &scale);
     void clearBackwardTempValues();
+    void toXavier(vector<vector<double>> &input);
     default_random_engine dre;
     int uNum;
     int xDim;

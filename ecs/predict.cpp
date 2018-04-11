@@ -775,7 +775,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // 循环训练所有数据
 
     // alpha
-    double a = 0.3;
+    double a = 0.5;
     for(int h=1;h<=serverInfo.flavorTypeCount;h++)
     {
         S[0] = 0.0;
@@ -785,7 +785,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
 //        S[0] /= predictDaysCount;
         S[1] = accArray[h][1];
         for(int i=2;i<=trainDataDayCount;i++)
-            S[i] = a*accArray[h][i-1]+(1-a)*S[i-1];
+            S[i] = a*accArray[h][i]+(1-a)*S[i-1];
 
 
         for(uint i=0;i<x.size();i++)
@@ -806,18 +806,18 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         }
 
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.01,1000,0.01);
+        gru.setData(x,y,0.05,2000,0.01);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();
         gru.startTrainning();
 
-        predictArray[h][1] = ceil(gru.getPredictData()*1.1);
+        predictArray[h][1] = ceil(gru.getPredictData());
         if(predictArray[h][1] < 0)
             predictArray[h][1] = -predictArray[h][1];
     }
     // 计算预测准确度
-    vector<int> realData = {0,4,6,3,0,11,1,6,40,0,1,11,0,3,28,1};
+    vector<int> realData = {0,19,20,2,10,32,8,3,45,14,0,8,8,11,2,2};
     double temp1 = 0.0,temp2 = 0.0, temp3 = 0.0;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {

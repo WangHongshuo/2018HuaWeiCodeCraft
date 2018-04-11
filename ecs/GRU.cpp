@@ -570,13 +570,14 @@ void GRU::initCell()
 // 初始化值
 void GRU::initCellValue()
 {
-    fillWithRandomValue(Wy,-1.0,1.0);
-    fillWithRandomValue(Ur,-1.0,1.0);
-    fillWithRandomValue(U,-1.0,1.0);
-    fillWithRandomValue(Uz,-1.0,1.0);
-    fillWithRandomValue(Wr,-1.0,1.0);
-    fillWithRandomValue(W,-1.0,1.0);
-    fillWithRandomValue(Wz,-1.0,1.0);
+    double xavier = sqrt(6.0/double(xDim+yDim));
+    fillWithRandomValue(Wy,-xavier,xavier);
+    fillWithRandomValue(Ur,-xavier,xavier);
+    fillWithRandomValue(U,-xavier,xavier);
+    fillWithRandomValue(Uz,-xavier,xavier);
+    fillWithRandomValue(Wr,-xavier,xavier);
+    fillWithRandomValue(W,-xavier,xavier);
+    fillWithRandomValue(Wz,-xavier,xavier);
 
     for(uint i=0;i<rValue.size();i++)
     {
@@ -710,7 +711,7 @@ double GRU::squrshTo(vector<vector<double>> &x, vector<vector<double>> &y, doubl
 
 void GRU::uniformX(vector<vector<double> > &input)
 {
-    double tempSum, tempAvg, tempMax, tempMin;
+    double tempSum, tempAvg, tempMax, tempMin, xavier;
     for(uint i=0;i<input.size();i++)
     {
         tempSum = 0.0;
@@ -729,8 +730,9 @@ void GRU::uniformX(vector<vector<double> > &input)
             if(input[i][j] < tempMin)
                 tempMin = input[i][j];
         }
+        xavier = sqrt(6.0/double(xDim+yDim));
         for(uint j=0;j<uNum-tNum-pNum+i+1;j++)
-            input[i][j] = input[i][j]/(tempMax-tempMin);
+            input[i][j] = (input[i][j]-tempMin)/(tempMax-tempMin)*2*xavier-xavier;
     }
 }
 
@@ -781,6 +783,27 @@ void GRU::clearBackwardTempValues()
         dWr[i].assign(dWr[0].size(),0.0);
         dW[i].assign(dW[0].size(),0.0);
         dWz[i].assign(dWz[0].size(),0.0);
+    }
+}
+
+void GRU::toXavier(vector<vector<double> > &input)
+{
+    double tempMax, tempMin, xavier;
+    for(uint i=0;i<input.size();i++)
+    {
+        tempMax = tempMin = input[i][0];
+        for(uint j=1;j<input[i].size();j++)
+        {
+            if(tempMax < input[i][j])
+                tempMax = input[i][j];
+            if(tempMin > input[i][j])
+                tempMin = input[i][j];
+        }
+        xavier = sqrt(6.0/double(xDim+yDim));
+        for(uint j=1;j<input[i].size();j++)
+        {
+            input[i][j] = (input[i][j]-tempMin)/(tempMax-tempMin)*2*xavier-xavier;
+        }
     }
 }
 
