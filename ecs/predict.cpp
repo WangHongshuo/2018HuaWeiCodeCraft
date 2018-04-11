@@ -754,14 +754,8 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         for(int j=2;j<=trainDataDayCount;j++)
             accArray[i][j] = accArray[i][j-1]+trainDataArray[i][j];
     }
-
-    GRU gru;
-    // 隐藏层，训练天数，预测天数
-    int hDim = ceil(double(trainDataDayCount)/double(2));
-    int timeStep = predictDaysCount;
-
     // 组建训练数据,索引从0开始，x只需建立一次
-
+    int timeStep = predictDaysCount;
     vector<vector<double>> x(timeStep);
     for(uint i=0;i<x.size();i++)
         x[i].resize(accArray[1].size()-1);
@@ -770,19 +764,18 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         y[i].resize(accArray[1].size()-1);
     vector<double> S(accArray[1].size()-1);
 
-    // 存放预测的临时变量
-    vector<vector<double>> predictY(serverInfo.flavorTypeCount);
-    for(int i=0;i<serverInfo.flavorTypeCount;i++)
-        predictY[i].resize(y[0].size());
+    GRU gru;
+    // 隐藏层，训练天数，预测天数
+    int hDim = ceil(double(trainDataDayCount)/double(2));
 
     gru.setParameters(hDim,trainDataDayCount,predictDaysCount,timeStep);
-    int seed = 1523363508;
+    int seed = time(0);
     cout << "Seed: " << seed << endl;
     gru.setRandomSeed(seed);
     // 循环训练所有数据
 
     // alpha
-    double a = 0.3;
+    double a = 0.5;
     for(int h=1;h<=serverInfo.flavorTypeCount;h++)
     {
         S[0] = 0.0;
@@ -813,7 +806,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         }
 
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.01,2500,0.01);
+        gru.setData(x,y,0.01,3000,0.01);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();
@@ -823,4 +816,18 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         if(predictArray[h][1] < 0)
             predictArray[h][1] = -predictArray[h][1];
     }
+    // 计算预测准确度
+    vector<int> realData = {0,4,6,3,0,11,1,6,40,0,1,11,0,3,28,1};
+    double temp1 = 0.0,temp2 = 0.0, temp3 = 0.0;
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        temp1 += pow(double(predictArray[i][1]-realData[i]),2);
+        temp2 += pow(double(realData[i]),2);
+        temp3 += pow(double(predictArray[i][1]),2);
+    }
+    temp1 = sqrt(temp1/serverInfo.flavorTypeCount);
+    temp2 = sqrt(temp2/serverInfo.flavorTypeCount);
+    temp3 = sqrt(temp3/serverInfo.flavorTypeCount);
+    double accuracy = (1-temp1/(temp2+temp3));
+    cout << "Accurcy: " << accuracy << endl;
 }

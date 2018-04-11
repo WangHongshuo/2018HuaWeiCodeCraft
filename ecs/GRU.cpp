@@ -453,7 +453,7 @@ void GRU::matTanhB(const vector<double> &vec, vector<double> &vecOutput)
 
 double GRU::getPredictData()
 {
-    double p = yValue[uNum-pNum-1][0]-yValue[uNum-pNum-tNum][0];
+    double p = yValue[uNum-tNum-1][0]-yValue[uNum-tNum-pNum][0];
     p = p*(y_MAX-y_MIN)/y_SCALE;
     return p;
 }
