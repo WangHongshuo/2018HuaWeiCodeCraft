@@ -461,6 +461,7 @@ double GRU::getPredictData()
 void GRU::setRandomSeed(int seed)
 {
     randomSeed = seed;
+    dre.seed(randomSeed);
 }
 
 // 分配空间
@@ -600,8 +601,6 @@ void GRU::initCellValue()
 // 填充[-1,1]随机数
 void GRU::fillWithRandomValue(vector<vector<double> > &mat, const double &a, const double &b)
 {
-    default_random_engine dre;
-    dre.seed(randomSeed);
     uniform_real_distribution<double> dr(a,b);
     for(uint i=0;i<mat.size();i++)
         for(uint j=0;j<mat[0].size();j++)
@@ -610,8 +609,6 @@ void GRU::fillWithRandomValue(vector<vector<double> > &mat, const double &a, con
 
 void GRU::fillWithRandomValue(vector<double> &vec, const double &a, const double &b)
 {
-    default_random_engine dre;
-    dre.seed(randomSeed);
     uniform_real_distribution<double> dr(a,b);
     for(uint i=0;i<vec.size();i++)
         vec[i] = dr(dre);
