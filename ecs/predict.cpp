@@ -626,8 +626,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
     }
 
-    // 输出Chicken前的预测
-    cout << "Before chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    cout << "Before, the predict data count:  VM count: " << predictVMCount << endl;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
@@ -635,12 +634,10 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
     }
     cout << "=================" << endl;
 
-    // 反向Chicken调整，服务器数量必须大于1
     if(SERVER_COUNT > 1)
     {
         int maxCount = 0;
         int temp;
-        // 计算末尾服务器中存放最多的Flavor和对应的数量
         for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
         {
             temp = server[SERVER_COUNT].flavorCount[serverInfo.flavorType[i]];
@@ -650,8 +647,6 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 flavorType = serverInfo.flavorType[i];
             }
         }
-//        cout << maxCount << " " << flavorType << endl;
-        // 如果每种flavor的数量较小，删除，否则尝试放满
         if(maxCount < 2)
         {
             for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
@@ -663,8 +658,6 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-//            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
-            // 就是要放满
             bool isThisFlavorCanPushIn;
             for(int i=MAX_FLAVOR_TYPE;i>0;i--)
             {
@@ -692,11 +685,9 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 }
             }
         }
-//        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
     }
 
-    // 输出Chicken后的预测
-    cout << "After chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    cout << "After, the predict data count:  VM count: " << predictVMCount << endl;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
@@ -775,7 +766,7 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
     // 循环训练所有数据
 
     // alpha
-    double a = 0.5;
+    double a = 0.6;
     for(int h=1;h<=serverInfo.flavorTypeCount;h++)
     {
         S[0] = 0.0;
@@ -806,15 +797,15 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         }
 
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.05,2000,0.01);
+        gru.setData(x,y,0.02,2000,0.01);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();
         gru.startTrainning();
 
-        predictArray[h][1] = ceil(gru.getPredictData());
+        predictArray[h][1] = ceil(gru.getPredictData()*0.9);
         if(predictArray[h][1] < 0)
-            predictArray[h][1] = -predictArray[h][1];
+            predictArray[h][1] = 0;
     }
     // 计算预测准确度
     vector<int> realData = {0,19,20,2,10,32,8,3,45,14,0,8,8,11,2,2};
