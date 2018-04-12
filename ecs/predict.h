@@ -56,8 +56,10 @@ struct phyServer
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
 void sortFlavorOrderByOptimizationTarget(phyServerInfo &target);
-void quickSort(int left, int right, int * array);
-void quickSort(int left, int right, int * array , int * index);
+void quickSortMinToMax(int left, int right, int * array);
+void quickSortMinToMax(int left, int right, int * array , int * index);
+void quickSortMaxToMin(int left, int right, int * array);
+void quickSortMaxToMin(int left, int right, int * array , int * index);
 void loadTrainDataToVector(vector<trainData> &target, int daysCount, char * data[MAX_DATA_NUM], int dataLineCount, phyServerInfo &serverInfo);
 char * charToNum(char * str, int &target);
 void numToDate(int num, date &target);
