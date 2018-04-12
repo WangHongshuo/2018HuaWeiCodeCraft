@@ -3,10 +3,7 @@
 
 phyServerInfo serverInfo;
 int DAYS[13] = {-1,31,28,31,30,31,30,31,31,30,31,30,31};
-int FLAVOR[16][2] = {0,0, 1,1, 1,2, 1,4, 2,2, 2,4, 2,8, 4,4,
-                     4,8, 4,16, 8,8, 8,16, 8,32, 16,16, 16,32, 16,64};
-double FLAVOR_DELTA[16] = {0, 1, 2, 4, 1, 2, 4, 1,
-                           2, 4, 1, 2, 4, 1, 2, 4};
+vector<FLAVOR> flavor(16);
 int trainDataDayCount = 0;
 int trainDataIndex = 1;
 vector<trainData> trainDataGroup;
@@ -23,6 +20,12 @@ vector<phyServer> server;
 //你要完成的功能总入口
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename)
 {
+    for(int i=1;i<16;i++)
+    {
+        flavor[i].cpu = int(pow(2,(i-1)/3));
+        flavor[i].mem = flavor[i].cpu*(int(pow(2,(((i-1)%3)))));
+        flavor[i].delta = double(flavor[i].mem)/double(flavor[i].cpu);
+    }
     // ======================================================================
     // 载入数据
     loadInfo(info, serverInfo);
@@ -32,7 +35,6 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // 分配vector空间，为方便，索引从1开始，0为无效数据
     trainDataGroup.resize(trainDataDayCount+1);
     loadTrainDataToVector(trainDataGroup,trainDataDayCount,data,data_num,serverInfo);
-
     // 所有索引从1开始
     // serverInfo.flavorTpyeCount为物理服务器可提供的flavor种类数量
     // serverInfo.flavorType[index]为物理服务器可提供的flavor种类,index范围为1~flavorCount
@@ -228,11 +230,11 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
     if(target.optimizedTarget == CPU)
     {
         // 先根据delta大小排序，后根据MEM大小对相投CPU之间进行微调
-        int delta[16];
+        double delta[16];
         int left,right;
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
-            delta[i] = FLAVOR_DELTA[target.flavorType[i]];
+            delta[i] = flavor[target.flavorType[i]].delta;
         quickSortMaxToMin(1,target.flavorTypeCount,delta,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
@@ -241,7 +243,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
         {
             for(int i=1;i<6;i++)
             {
-                if(FLAVOR_DELTA[target.flavorType[left]] == FLAVOR_DELTA[target.flavorType[left+i]])
+                if(flavor[target.flavorType[left]].delta == flavor[target.flavorType[left+i]].delta)
                 {
                     right++;
                     continue;
@@ -266,11 +268,11 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
     else
     {
         // 先根据delta大小排序，后根据MEM大小进行微调
-        int delta[16];
+        double delta[16];
         int left,right;
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
-            delta[i] = FLAVOR_DELTA[target.flavorType[i]];
+            delta[i] = flavor[target.flavorType[i]].delta;
         quickSortMinToMax(1,target.flavorTypeCount,delta,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
@@ -279,7 +281,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
         {
             for(int i=1;i<6;i++)
             {
-                if(FLAVOR_DELTA[target.flavorType[left]] == FLAVOR_DELTA[target.flavorType[left+i]])
+                if(flavor[target.flavorType[left]].delta == flavor[target.flavorType[left+i]].delta)
                 {
                     right++;
                     continue;
@@ -351,7 +353,7 @@ void quickSortMinToMax(int left, int right, int *array)
 }
 
 // 快速排序，根据array大小排序index,array必须和index有相同大小
-void quickSortMinToMax(int left, int right, int *array, int *index)
+void quickSortMinToMax(int left, int right, double *array, int *index)
 {
     int flag = 0;
     int l = left;
@@ -447,7 +449,7 @@ void quickSortMaxToMin(int left, int right, int *array)
 }
 
 // 快速排序，根据array大小排序index,array必须和index有相同大小
-void quickSortMaxToMin(int left, int right, int *array, int *index)
+void quickSortMaxToMin(int left, int right, double *array, int *index)
 {
     int flag = 0;
     int l = left;
@@ -726,8 +728,8 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
 //                     << " server is full = " << server[SERVER_COUNT].isFull << endl;
 //                cout << "=================" << endl;
 //                system("pause");
-                if(server[SERVER_COUNT].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
-                        server[SERVER_COUNT].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                if(server[SERVER_COUNT].usedCPU+flavor[flavorType].cpu > MAX_CPU ||
+                        server[SERVER_COUNT].usedMEM+flavor[flavorType].mem > MAX_MEM)
                 {
                     if((i==1 || tryCount > MAX_FLAVOR_TYPE) && tPredictVMCount > 0)
                     {
@@ -743,8 +745,8 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 }
                 else
                 {
-                    server[SERVER_COUNT].usedCPU += FLAVOR[flavorType][0];
-                    server[SERVER_COUNT].usedMEM += FLAVOR[flavorType][1];
+                    server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
+                    server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
                     server[SERVER_COUNT].flavorCount[flavorType]++;
                     server[SERVER_COUNT].VMCount++;
                     flavorCount--;
@@ -803,8 +805,8 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 while(isThisFlavorCanPushIn && !server[SERVER_COUNT].isFull)
                 {
                     flavorType = serverInfo.flavorType[i];
-                    if(server[SERVER_COUNT].usedCPU+FLAVOR[flavorType][0] > MAX_CPU ||
-                            server[SERVER_COUNT].usedMEM+FLAVOR[flavorType][1] > MAX_MEM)
+                    if(server[SERVER_COUNT].usedCPU+flavor[flavorType].cpu > MAX_CPU ||
+                            server[SERVER_COUNT].usedMEM+flavor[flavorType].mem > MAX_MEM)
                     {
                         if(i > 1)
                            isThisFlavorCanPushIn = false;
@@ -813,8 +815,8 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     }
                     else
                     {
-                        server[SERVER_COUNT].usedCPU += FLAVOR[flavorType][0];
-                        server[SERVER_COUNT].usedMEM += FLAVOR[flavorType][1];
+                        server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
+                        server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
                         server[SERVER_COUNT].flavorCount[flavorType]++;
                         server[SERVER_COUNT].VMCount++;
                         predictArray[i][1]++;
