@@ -157,11 +157,11 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
             temp1 += server[i].usedMEM;
             temp2 += serverInfo.MEMCount;
         }
-        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
-        {
-            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
-        }
-        cout << endl;
+//        for(int j=1;j<=serverInfo.flavorTypeCount;j++)
+//        {
+//            cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
+//        }
+//        cout << endl;
     }
     cout << "Percentage of Usage: " << double(temp1)/double(temp2) << endl;
     cout << "=================" << endl;
@@ -237,7 +237,6 @@ void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target)
     numToDate(numTypeDate,target.predictEndTime);
 }
 
-// 根据优化目标对phyServer中支持的flavor进行排序
 // 根据优化目标对phyServer中支持的flavor进行排序
 void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
 {
@@ -726,7 +725,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         server.push_back(phyServer(MAX_CPU,MAX_MEM));
     int SERVER_COUNT = server.size()-1;
     int flavorType = 0, flavorCount, bestChoiceFlavor, bestChoiceIndex,tryCount = 0;
-    bool isRestart = false;
+    bool isRestart = false, isGetBestChioce = false;
     double tempDiff, minDiff = DBL_MAX;
     if(serverInfo.optimizedTarget == CPU)
     {
@@ -761,15 +760,15 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     }
                     else
                     {
-                        tryCount --;
                         server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
                         server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
                         tempDiff = fabs(server[SERVER_COUNT].getPercentageOfUsedMem()-server[SERVER_COUNT].getPercentageOfUsedCpu());
-                        if(tempDiff < minDiff)
+                        if(tempDiff <= minDiff)
                         {
                             minDiff = tempDiff;
                             bestChoiceFlavor = flavorType;
                             bestChoiceIndex = i;
+                            isGetBestChioce = true;
                         }
                         server[SERVER_COUNT].usedCPU -= flavor[flavorType].cpu;
                         server[SERVER_COUNT].usedMEM -= flavor[flavorType].mem;
@@ -781,7 +780,18 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     isRestart = false;
                     break;
                 }
-                if(i == 1 && tryCount < 15)
+            }
+            if(isGetBestChioce)
+            {
+                if(server[SERVER_COUNT].usedCPU + flavor[bestChoiceFlavor].cpu > MAX_CPU ||
+                   server[SERVER_COUNT].usedMEM + flavor[bestChoiceFlavor].mem > MAX_MEM   )
+                {
+                    tryCount = 0;
+                    minDiff = DBL_MAX;
+                    isGetBestChioce = false;
+                    break;
+                }
+                else
                 {
                     server[SERVER_COUNT].usedCPU += flavor[bestChoiceFlavor].cpu;
                     server[SERVER_COUNT].usedMEM += flavor[bestChoiceFlavor].mem;
@@ -791,15 +801,16 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     tPredictVMCount--;
                     tryCount = 0;
                     minDiff = DBL_MAX;
-//                    cout << "Server[" << SERVER_COUNT << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
-//                    cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
-//                    cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
-//                         << " server is full = " << server[SERVER_COUNT].isFull << endl;
-//                    cout <<  "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].getPercentageOfUsedCpu()*100 << "%, " <<
-//                             "used MEM: " << server[SERVER_COUNT].getPercentageOfUsedMem()*100 << "%" << endl;
-//                    cout << "=================" << endl;
-//                    system("pause");
+                    isGetBestChioce = false;
                 }
+//                cout << "Server[" << SERVER_COUNT << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
+//                cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
+//                cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
+//                     << " server is full = " << server[SERVER_COUNT].isFull << endl;
+//                cout <<  "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].getPercentageOfUsedCpu()*100 << "%, " <<
+//                         "used MEM: " << server[SERVER_COUNT].getPercentageOfUsedMem()*100 << "%" << endl;
+//                cout << "=================" << endl;
+//                system("pause");
             }
         }
     }
@@ -836,15 +847,15 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     }
                     else
                     {
-                        tryCount --;
                         server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
                         server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
                         tempDiff = fabs(server[SERVER_COUNT].getPercentageOfUsedCpu()-server[SERVER_COUNT].getPercentageOfUsedMem());
-                        if(tempDiff < minDiff)
+                        if(tempDiff <= minDiff)
                         {
                             minDiff = tempDiff;
                             bestChoiceFlavor = flavorType;
                             bestChoiceIndex = i;
+                            isGetBestChioce = true;
                         }
                         server[SERVER_COUNT].usedCPU -= flavor[flavorType].cpu;
                         server[SERVER_COUNT].usedMEM -= flavor[flavorType].mem;
@@ -856,7 +867,18 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     isRestart = false;
                     break;
                 }
-                if(i == 1 && tryCount < 15)
+            }
+            if(isGetBestChioce)
+            {
+                if(server[SERVER_COUNT].usedCPU + flavor[bestChoiceFlavor].cpu > MAX_CPU ||
+                   server[SERVER_COUNT].usedMEM + flavor[bestChoiceFlavor].mem > MAX_MEM   )
+                {
+                    tryCount = 0;
+                    minDiff = DBL_MAX;
+                    isGetBestChioce = false;
+                    break;
+                }
+                else
                 {
                     server[SERVER_COUNT].usedCPU += flavor[bestChoiceFlavor].cpu;
                     server[SERVER_COUNT].usedMEM += flavor[bestChoiceFlavor].mem;
@@ -866,15 +888,16 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     tPredictVMCount--;
                     tryCount = 0;
                     minDiff = DBL_MAX;
-//                    cout << "Server[" << SERVER_COUNT << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
-//                    cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
-//                    cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
-//                         << " server is full = " << server[SERVER_COUNT].isFull << endl;
-//                    cout <<  "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].getPercentageOfUsedCpu()*100 << "%, " <<
-//                             "used MEM: " << server[SERVER_COUNT].getPercentageOfUsedMem()*100 << "%" << endl;
-//                    cout << "=================" << endl;
-//                    system("pause");
+                    isGetBestChioce = false;
                 }
+//                cout << "Server[" << SERVER_COUNT << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
+//                cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
+//                cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
+//                     << " server is full = " << server[SERVER_COUNT].isFull << endl;
+//                cout <<  "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].getPercentageOfUsedCpu()*100 << "%, " <<
+//                         "used MEM: " << server[SERVER_COUNT].getPercentageOfUsedMem()*100 << "%" << endl;
+//                cout << "=================" << endl;
+//                system("pause");
             }
         }
     }
@@ -905,7 +928,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
 //        cout << maxCount << " " << flavorType << endl;
         // 如果每种flavor的数量较小，删除，否则尝试放满
-        if(maxCount < 2)
+        if(maxCount < 3)
         {
             for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
             {
@@ -916,7 +939,6 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-//            cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
             // 就是要放满
             bool isThisFlavorCanPushIn;
             for(int i=MAX_FLAVOR_TYPE;i>0;i--)
