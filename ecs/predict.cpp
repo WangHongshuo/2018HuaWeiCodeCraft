@@ -136,21 +136,34 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // ======================================================================
 
     // 分配预测后的flavor
-    server.push_back(phyServer());
+    server.push_back(phyServer(serverInfo.CPUCount,serverInfo.MEMCount));
     allocateModel(server,predictDataFlavorCount,predictVMCount,serverInfo,predictPhyServerCount);
 
     // 输出用例（输出全部可输出数据）：
+    int temp1 = 0, temp2 = 0;
     cout << "predicted phy server count: " << predictPhyServerCount << endl;
     for(int i=1;i<=predictPhyServerCount;i++)
     {
         cout << "Server " << i << " : " << "CPU: " << server[i].usedCPU << "/" << serverInfo.CPUCount
-             << ", MEM: " << server[i].usedMEM << "/" << serverInfo.MEMCount << endl;
+             << ", MEM: " << server[i].usedMEM << "/" << serverInfo.MEMCount  << " IsPerfectlyFull: "
+             << server[i].isPerfectlyFull << endl;
+        if(serverInfo.optimizedTarget == CPU)
+        {
+            temp1 += server[i].usedCPU;
+            temp2 += serverInfo.CPUCount;
+        }
+        else
+        {
+            temp1 += server[i].usedMEM;
+            temp2 += serverInfo.MEMCount;
+        }
         for(int j=1;j<=serverInfo.flavorTypeCount;j++)
         {
             cout << "Flavor" << serverInfo.flavorType[j] << " " << server[i].flavorCount[serverInfo.flavorType[j]] << endl;
         }
         cout << endl;
     }
+    cout << "Percentage of Usage: " << double(temp1)/double(temp2) << endl;
     cout << "=================" << endl;
 
     // ======================================================================
@@ -703,15 +716,15 @@ void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], i
 //  predictArray[i][j]的i<MAX_FLAVOR_TYPE，server的index从1开始
 void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount )
 {
+    int MAX_FLAVOR_TYPE = serverInfo.flavorTypeCount;
+    int MAX_CPU = serverInfo.CPUCount;
+    int MAX_MEM = serverInfo.MEMCount;
     int tPredictArray[16][2];
     int tPredictVMCount = predictVMCount;
     memcpy(tPredictArray,predictArray,(16*2)*4);
     if(tPredictVMCount > 0)
-        server.push_back(phyServer());
+        server.push_back(phyServer(MAX_CPU,MAX_MEM));
     int SERVER_COUNT = server.size()-1;
-    int MAX_FLAVOR_TYPE = serverInfo.flavorTypeCount;
-    int MAX_CPU = serverInfo.CPUCount;
-    int MAX_MEM = serverInfo.MEMCount;
     int flavorType = 0, flavorCount, tryCount = 0;;
     while(tPredictVMCount)
     {
@@ -734,8 +747,18 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     if((i==1 || tryCount > MAX_FLAVOR_TYPE) && tPredictVMCount > 0)
                     {
                         server[SERVER_COUNT].isFull = true;
+                        if(serverInfo.optimizedTarget == CPU)
+                        {
+                            if(server[SERVER_COUNT].getPercentageOfUsedCpu() > 0.99)
+                                server[SERVER_COUNT].isPerfectlyFull = true;
+                        }
+                        else
+                        {
+                            if(server[SERVER_COUNT].getPercentageOfUsedMem() > 0.99)
+                                server[SERVER_COUNT].isPerfectlyFull = true;
+                        }
                         tryCount = 1;
-                        server.push_back(phyServer());
+                        server.push_back(phyServer(MAX_CPU,MAX_MEM));
                         SERVER_COUNT++;
                     }
                     else

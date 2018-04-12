@@ -43,14 +43,32 @@ struct trainData
     trainData() {}
 };
 
-struct phyServer
+class phyServer
 {
+public:
+    phyServer(int maxCPU, int maxMEM)
+    {
+        MAX_CPU = maxCPU;
+        MAX_MEM = maxMEM;
+    }
+    ~phyServer() {}
     int usedCPU = 0;
     int usedMEM = 0;
     int flavorCount[16] = {0};
     int VMCount = 0;
     bool isFull = false;
-    phyServer() {}
+    bool isPerfectlyFull = false;
+    double getPercentageOfUsedCpu()
+    {
+        return double(usedCPU)/double(MAX_CPU);
+    }
+    double getPercentageOfUsedMem()
+    {
+        return double(usedMEM)/double(MAX_MEM);
+    }
+private:
+    int MAX_CPU;
+    int MAX_MEM;
 };
 
 struct FLAVOR
