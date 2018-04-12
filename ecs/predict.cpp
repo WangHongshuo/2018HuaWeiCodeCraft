@@ -238,25 +238,25 @@ void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target)
 }
 
 // 根据优化目标对phyServer中支持的flavor进行排序
+// 根据优化目标对phyServer中支持的flavor进行排序
 void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
 {
     if(target.optimizedTarget == CPU)
     {
-        // 先根据delta大小排序，后根据MEM大小对相投CPU之间进行微调
-        double delta[16];
+        // 先根据CPU大小排序，后根据MEM大小对相投CPU之间进行微调
+        int cpu[16];
         int left,right;
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
-            delta[i] = flavor[target.flavorType[i]].delta;
-        quickSortMaxToMin(1,target.flavorTypeCount,delta,target.flavorType);
+            cpu[i] = flavor[target.flavorType[i]].cpu;
+        quickSortMinToMax(1,target.flavorTypeCount,cpu,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
-//        cout << endl;
         while(right <= target.flavorTypeCount)
         {
-            for(int i=1;i<6;i++)
+            for(int i=1;i<4;i++)
             {
-                if(flavor[target.flavorType[left]].delta == flavor[target.flavorType[left+i]].delta)
+                if(flavor[target.flavorType[left]].cpu == flavor[target.flavorType[left+i]].cpu)
                 {
                     right++;
                     continue;
@@ -268,7 +268,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
                 }
                 else
                 {
-                    quickSortMinToMax(left,right,target.flavorType);
+                    quickSortMaxToMin(left,right,target.flavorType);
                     left = right = right+1;
                     break;
                 }
@@ -280,21 +280,21 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
     }
     else
     {
-        // 先根据delta大小排序，后根据MEM大小进行微调
-        double delta[16];
+        // 先根据MEM大小排序，后根据CPU大小对相投MEM之间进行微调
+        int mem[16];
         int left,right;
         left = right = 1;
         for(int i=1;i<=target.flavorTypeCount;i++)
-            delta[i] = flavor[target.flavorType[i]].delta;
-        quickSortMinToMax(1,target.flavorTypeCount,delta,target.flavorType);
+            mem[i] = flavor[target.flavorType[i]].mem;
+        quickSortMinToMax(1,target.flavorTypeCount,mem,target.flavorType);
 //        for(int i=1;i<=target.flavorTypeCount;i++)
 //            cout << target.flavorType[i] << " ";
 //        cout << endl;
         while(right <= target.flavorTypeCount)
         {
-            for(int i=1;i<6;i++)
+            for(int i=1;i<4;i++)
             {
-                if(flavor[target.flavorType[left]].delta == flavor[target.flavorType[left+i]].delta)
+                if(flavor[target.flavorType[left]].mem == flavor[target.flavorType[left+i]].mem)
                 {
                     right++;
                     continue;
@@ -306,7 +306,7 @@ void sortFlavorOrderByOptimizationTarget(phyServerInfo &target)
                 }
                 else
                 {
-                    quickSortMinToMax(left,right,target.flavorType);
+                    quickSortMaxToMin(left,right,target.flavorType);
                     left = right = right+1;
                     break;
                 }
@@ -366,7 +366,7 @@ void quickSortMinToMax(int left, int right, int *array)
 }
 
 // 快速排序，根据array大小排序index,array必须和index有相同大小
-void quickSortMinToMax(int left, int right, double *array, int *index)
+void quickSortMinToMax(int left, int right, int *array, int *index)
 {
     int flag = 0;
     int l = left;
@@ -462,7 +462,7 @@ void quickSortMaxToMin(int left, int right, int *array)
 }
 
 // 快速排序，根据array大小排序index,array必须和index有相同大小
-void quickSortMaxToMin(int left, int right, double *array, int *index)
+void quickSortMaxToMin(int left, int right, int *array, int *index)
 {
     int flag = 0;
     int l = left;
@@ -725,59 +725,156 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
     if(tPredictVMCount > 0)
         server.push_back(phyServer(MAX_CPU,MAX_MEM));
     int SERVER_COUNT = server.size()-1;
-    int flavorType = 0, flavorCount, tryCount = 0;;
-    while(tPredictVMCount)
+    int flavorType = 0, flavorCount, bestChoiceFlavor, bestChoiceIndex,tryCount = 0;
+    bool isRestart = false;
+    double tempDiff, minDiff = DBL_MAX;
+    if(serverInfo.optimizedTarget == CPU)
     {
-        for(int i=MAX_FLAVOR_TYPE;i>0;i--)
+        while(tPredictVMCount)
         {
-            flavorType = tPredictArray[i][0];
-            flavorCount = tPredictArray[i][1];
-            tryCount ++ ;
-            while(flavorCount)
+            minDiff = DBL_MAX;
+            for(int i=MAX_FLAVOR_TYPE;i>0;i--)
             {
-//                cout << "Before server[" << SERVER_COUNT << "] add Flavor[" << flavorType << "]:" << endl;
-//                cout << "Flavor[" << flavorType << "] count: " << flavorCount << endl;
-//                cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
-//                     << " server is full = " << server[SERVER_COUNT].isFull << endl;
-//                cout << "=================" << endl;
-//                system("pause");
-                if(server[SERVER_COUNT].usedCPU+flavor[flavorType].cpu > MAX_CPU ||
-                        server[SERVER_COUNT].usedMEM+flavor[flavorType].mem > MAX_MEM)
+                flavorType = tPredictArray[i][0];
+                flavorCount = tPredictArray[i][1];
+                tryCount ++;
+                while(flavorCount)
                 {
-                    if((i==1 || tryCount > MAX_FLAVOR_TYPE) && tPredictVMCount > 0)
+                    if(server[SERVER_COUNT].usedCPU+flavor[flavorType].cpu > MAX_CPU ||
+                            server[SERVER_COUNT].usedMEM+flavor[flavorType].mem > MAX_MEM)
                     {
-                        server[SERVER_COUNT].isFull = true;
-                        if(serverInfo.optimizedTarget == CPU)
+                        if(tryCount >= MAX_FLAVOR_TYPE && tPredictVMCount > 0)
                         {
-                            if(server[SERVER_COUNT].getPercentageOfUsedCpu() > 0.99)
+                            server[SERVER_COUNT].isFull = true;
+                            if(server[SERVER_COUNT].getPercentageOfUsedCpu() > 0.95)
                                 server[SERVER_COUNT].isPerfectlyFull = true;
+                            tryCount = 1;
+                            server.push_back(phyServer(MAX_CPU,MAX_MEM));
+                            SERVER_COUNT++;
+                            isRestart = true;
+                            break;
                         }
                         else
                         {
-                            if(server[SERVER_COUNT].getPercentageOfUsedMem() > 0.99)
-                                server[SERVER_COUNT].isPerfectlyFull = true;
+                            break;
                         }
-                        tryCount = 1;
-                        server.push_back(phyServer(MAX_CPU,MAX_MEM));
-                        SERVER_COUNT++;
                     }
                     else
                     {
+                        tryCount --;
+                        server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
+                        server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
+                        tempDiff = fabs(server[SERVER_COUNT].getPercentageOfUsedMem()-server[SERVER_COUNT].getPercentageOfUsedCpu());
+                        if(tempDiff < minDiff)
+                        {
+                            minDiff = tempDiff;
+                            bestChoiceFlavor = flavorType;
+                            bestChoiceIndex = i;
+                        }
+                        server[SERVER_COUNT].usedCPU -= flavor[flavorType].cpu;
+                        server[SERVER_COUNT].usedMEM -= flavor[flavorType].mem;
                         break;
                     }
                 }
-                else
+                if(isRestart)
                 {
-                    server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
-                    server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
-                    server[SERVER_COUNT].flavorCount[flavorType]++;
-                    server[SERVER_COUNT].VMCount++;
-                    flavorCount--;
-                    tPredictVMCount--;
-                }
-                tPredictArray[i][1] = flavorCount;
-                if(flavorCount == 0)
+                    isRestart = false;
                     break;
+                }
+                if(i == 1 && tryCount < 15)
+                {
+                    server[SERVER_COUNT].usedCPU += flavor[bestChoiceFlavor].cpu;
+                    server[SERVER_COUNT].usedMEM += flavor[bestChoiceFlavor].mem;
+                    server[SERVER_COUNT].flavorCount[bestChoiceFlavor]++;
+                    server[SERVER_COUNT].VMCount++;
+                    tPredictArray[bestChoiceIndex][1]--;
+                    tPredictVMCount--;
+                    tryCount = 0;
+                    minDiff = DBL_MAX;
+//                    cout << "Server[" << SERVER_COUNT << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
+//                    cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
+//                    cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
+//                         << " server is full = " << server[SERVER_COUNT].isFull << endl;
+//                    cout <<  "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].getPercentageOfUsedCpu()*100 << "%, " <<
+//                             "used MEM: " << server[SERVER_COUNT].getPercentageOfUsedMem()*100 << "%" << endl;
+//                    cout << "=================" << endl;
+//                    system("pause");
+                }
+            }
+        }
+    }
+    else
+    {
+        while(tPredictVMCount)
+        {
+            minDiff = DBL_MAX;
+            for(int i=MAX_FLAVOR_TYPE;i>0;i--)
+            {
+                flavorType = tPredictArray[i][0];
+                flavorCount = tPredictArray[i][1];
+                tryCount ++;
+                while(flavorCount)
+                {
+                    if(server[SERVER_COUNT].usedCPU+flavor[flavorType].cpu > MAX_CPU ||
+                            server[SERVER_COUNT].usedMEM+flavor[flavorType].mem > MAX_MEM)
+                    {
+                        if(tryCount >= MAX_FLAVOR_TYPE && tPredictVMCount > 0)
+                        {
+                            server[SERVER_COUNT].isFull = true;
+                            if(server[SERVER_COUNT].getPercentageOfUsedCpu() > 0.95)
+                                server[SERVER_COUNT].isPerfectlyFull = true;
+                            tryCount = 1;
+                            server.push_back(phyServer(MAX_CPU,MAX_MEM));
+                            SERVER_COUNT++;
+                            isRestart = true;
+                            break;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        tryCount --;
+                        server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
+                        server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
+                        tempDiff = fabs(server[SERVER_COUNT].getPercentageOfUsedCpu()-server[SERVER_COUNT].getPercentageOfUsedMem());
+                        if(tempDiff < minDiff)
+                        {
+                            minDiff = tempDiff;
+                            bestChoiceFlavor = flavorType;
+                            bestChoiceIndex = i;
+                        }
+                        server[SERVER_COUNT].usedCPU -= flavor[flavorType].cpu;
+                        server[SERVER_COUNT].usedMEM -= flavor[flavorType].mem;
+                        break;
+                    }
+                }
+                if(isRestart)
+                {
+                    isRestart = false;
+                    break;
+                }
+                if(i == 1 && tryCount < 15)
+                {
+                    server[SERVER_COUNT].usedCPU += flavor[bestChoiceFlavor].cpu;
+                    server[SERVER_COUNT].usedMEM += flavor[bestChoiceFlavor].mem;
+                    server[SERVER_COUNT].flavorCount[bestChoiceFlavor]++;
+                    server[SERVER_COUNT].VMCount++;
+                    tPredictArray[bestChoiceIndex][1]--;
+                    tPredictVMCount--;
+                    tryCount = 0;
+                    minDiff = DBL_MAX;
+//                    cout << "Server[" << SERVER_COUNT << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
+//                    cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
+//                    cout << "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].usedCPU << " used MEM: " << server[SERVER_COUNT].usedMEM
+//                         << " server is full = " << server[SERVER_COUNT].isFull << endl;
+//                    cout <<  "server[" << SERVER_COUNT << "] used CPU: " << server[SERVER_COUNT].getPercentageOfUsedCpu()*100 << "%, " <<
+//                             "used MEM: " << server[SERVER_COUNT].getPercentageOfUsedMem()*100 << "%" << endl;
+//                    cout << "=================" << endl;
+//                    system("pause");
+                }
             }
         }
     }
