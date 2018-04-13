@@ -13,6 +13,7 @@ int predictDataFlavorCount[16][2];
 double predictDataFlavorCount_1[16][2];
 double predictDataFlavorCount_2[16][2];
 double predictDataFlavorCount_3[16][2];
+double predictDataFlavorCount_4[16][2];
 int predictVMCount = 0;
 int predictPhyServerCount = 0;
 vector<phyServer> server;
@@ -101,6 +102,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         predictDataFlavorCount_2[i][1] = 0;
         predictDataFlavorCount_3[i][0] = serverInfo.flavorType[i];
         predictDataFlavorCount_3[i][1] = 0;
+        predictDataFlavorCount_4[i][0] = serverInfo.flavorType[i];
+        predictDataFlavorCount_4[i][1] = 0;
     }
 
     // 预测模型（只可启用一种模型，不启用的模型注释掉）
@@ -109,11 +112,13 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     ESModel(predictDataFlavorCount_1,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
     twoDESModel(predictDataFlavorCount_2,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
     threeDESModel(predictDataFlavorCount_3,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
+    linearModel(predictDataFlavorCount_4,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.7+
+        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.5+
                                             predictDataFlavorCount_2[i][1]*0.0+
-                                            predictDataFlavorCount_3[i][1]*0.3);
+                                            predictDataFlavorCount_3[i][1]*0.2+
+                                            predictDataFlavorCount_4[i][1]*0.3);
         if(predictDataFlavorCount[i][1] < 0)
             predictDataFlavorCount[i][1] = 0;
     }
@@ -899,8 +904,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
     }
 
-    // 输出Chicken前的预测
-    cout << "Before chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    cout << "Before, the predict data count:  VM count: " << predictVMCount << endl;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
@@ -908,12 +912,10 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
     }
     cout << "=================" << endl;
 
-    // 反向Chicken调整，服务器数量必须大于1
     if(SERVER_COUNT > 1)
     {
         int maxCount = 0;
         int temp;
-        // 计算末尾服务器中存放最多的Flavor和对应的数量
         for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
         {
             temp = server[SERVER_COUNT].flavorCount[serverInfo.flavorType[i]];
@@ -923,8 +925,6 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 flavorType = serverInfo.flavorType[i];
             }
         }
-//        cout << maxCount << " " << flavorType << endl;
-        // 如果每种flavor的数量较小，删除，否则尝试放满
         if(maxCount < 2)
         {
             for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
@@ -936,7 +936,6 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
         else
         {
-            // 就是要放满
             bool isThisFlavorCanPushIn;
             for(int i=MAX_FLAVOR_TYPE;i>0;i--)
             {
@@ -961,11 +960,9 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                 }
             }
         }
-//        cout << server[SERVER_COUNT].usedCPU << " " << server[SERVER_COUNT].usedMEM << endl;
     }
 
-    // 输出Chicken后的预测
-    cout << "After chicken, the predict data count:  VM count: " << predictVMCount << endl;
+    cout << "After, the predict data count:  VM count: " << predictVMCount << endl;
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
         cout << "Flavor" << predictArray[i][0] << "  Count: " << predictArray[i][1];
@@ -1396,4 +1393,120 @@ void threeDESModel(double (&predictArray)[16][2], vector<trainData> &vTrainData,
     {
         predictArray[i][1] = ceil(packedArray[i][packedArrayLength]*1.1);
     }
+}
+
+// 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
+void linearModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo)
+{
+    // 将vector数据放入数组中
+    // int[i][0]为flavor类型
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    vector<vector<int>> trainDataArray(1+serverInfo.flavorTypeCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+        trainDataArray[i].resize(1+trainDataDayCount+predictDaysCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        trainDataArray[i][0] = serverInfo.flavorType[i];
+        for(int j=1;j<=trainDataDayCount;j++)
+            trainDataArray[i][j] = vTrainData[j].flavorCount[serverInfo.flavorType[i]];
+    }
+
+    // 输出用例（输出全部可输出数据）：
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=trainDataDayCount;j++)
+//            cout << trainDataArray[i][j] << " ";
+//        cout << endl;
+//    }
+//    cout << "=================" << endl;
+
+    // 输出数据到文件
+//    ofstream output("F:/MATLAB_project/HW/test.txt",ios_base::out);
+//    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+//    {
+//        for(int j=0;j<=trainDataDayCount;j++)
+//            output << trainDataArray[i][j] << " ";
+//        output << '\n';
+//    }
+//    system("pause");
+
+    // 可用参数：
+    // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
+    // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
+    // 训练数据天数trainDataDayCount，预测天数predictDaysCount
+    // 物理服务器信息serverInfo（flavor种类数量serverInfo.flavorTypeCount）
+    //　输出参数：predictArray
+    // predictArray[i][0]为flavor的类型，已经初始化
+    // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
+    // TODO
+
+    // 线性累加
+    vector<vector<double>> accArray(1+serverInfo.flavorTypeCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        accArray[i].resize(1+trainDataDayCount+predictDaysCount);
+        accArray[i][1] = trainDataArray[i][1];
+        for(int j=2;j<=trainDataDayCount;j++)
+            accArray[i][j] = accArray[i][j-1]+trainDataArray[i][j];
+    }
+    // 设置滑动窗口参数
+    vector<double> window(predictDaysCount);
+    double delta = predictDaysCount;
+
+    // 滑动线性预测
+    double temp = 0.0;
+    double step = 0.0001;
+    vector<vector<double>> pArray(1+serverInfo.flavorTypeCount);
+    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
+    {
+        double alpha = 0.7;
+        int it = 7000;
+        double error = DBL_MAX;
+        pArray[i].resize(1+trainDataDayCount+predictDaysCount);
+        while(it)
+        {
+            for(int j=0;j<predictDaysCount;j++)
+                window[j] = delta*nD(j,double(predictDaysCount)/4)*alpha;
+            // 预测
+            temp = 0.0;
+            for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
+            {
+                for(int k=0;k<predictDaysCount;k++)
+                    temp += accArray[i][j-predictDaysCount+k]*window[k];
+                pArray[i][j] = temp;
+                temp = 0.0;
+            }
+            // 计算误差
+            temp = 0.0;
+            for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
+                temp += pow(accArray[i][j]-pArray[i][j],2);
+            if(temp < error)
+            {
+                error = temp;
+                alpha -= step;
+            }
+            else
+            {
+                alpha += step;
+                break;
+            }
+            it--;
+        }
+        // 预测
+        for(int j=predictDaysCount+1;j<=trainDataDayCount+predictDaysCount;j++)
+        {
+            for(int k=0;k<predictDaysCount;k++)
+                temp += accArray[i][j-predictDaysCount+k]*window[k];
+            pArray[i][j] = temp;
+            temp = 0.0;
+            if(j > trainDataDayCount)
+                accArray[i][j] = pArray[i][j];
+        }
+        predictArray[i][1] = (pArray[i][trainDataDayCount+predictDaysCount]-pArray[i][trainDataDayCount+1]);
+    }
+}
+
+double nD(double in, double sigma)
+{
+    return 1/sqrt(2*3.1415926)/sigma*exp(-pow(in,2)/2/pow(sigma,2));
 }
