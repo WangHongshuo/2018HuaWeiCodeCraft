@@ -98,7 +98,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 
     // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
     predictComplexModel(predictDataFlavorCount,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
-
+    cout << "1" << endl;
     // 简单预测模型：预测每种flavor数量的数组，训练数据每个flavor数量数组，flavor种类数量，训练数据天数，预测天数
 //    predictSimpleModel(predictDataFlavorCount,trainDataFlavorCount,serverInfo.flavorTypeCount,trainDataDayCount,predictDaysCount);
 
@@ -120,7 +120,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     // 分配预测后的flavor
     server.push_back(phyServer(serverInfo.CPUCount,serverInfo.MEMCount));
     allocateModel(server,predictDataFlavorCount,predictVMCount,serverInfo,predictPhyServerCount);
-
+    cout << "2" << endl;
     // 输出用例（输出全部可输出数据）：
     int temp1 = 0, temp2 = 0;
     cout << "predicted phy server count: " << predictPhyServerCount << endl;
@@ -1018,6 +1018,12 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         double alpha = 0.7;
         int it = 7000;
         double error = DBL_MAX;
+        double a = 0.8;
+        vector<double> S(accArray[1].size());
+        S.assign(S.size(),0.0);
+        S[1] = accArray[i][1];
+        for(int j=2;j<=trainDataDayCount;j++)
+            S[j] = a*accArray[i][j]+(1-a)*S[j-1];
         pArray[i].resize(1+trainDataDayCount+predictDaysCount);
         while(it)
         {
@@ -1028,14 +1034,14 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
             for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
             {
                 for(int k=0;k<predictDaysCount;k++)
-                    temp += accArray[i][j-predictDaysCount+k]*window[k];
+                    temp += S[j-predictDaysCount+k]*window[k];
                 pArray[i][j] = temp;
                 temp = 0.0;
             }
             // 计算误差
             temp = 0.0;
             for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
-                temp += pow(accArray[i][j]-pArray[i][j],2);
+                temp += pow(S[j]-pArray[i][j],2);
             if(temp < error)
             {
                 error = temp;
@@ -1052,11 +1058,11 @@ void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainDa
         for(int j=predictDaysCount+1;j<=trainDataDayCount+predictDaysCount;j++)
         {
             for(int k=0;k<predictDaysCount;k++)
-                temp += accArray[i][j-predictDaysCount+k]*window[k];
+                temp += S[j-predictDaysCount+k]*window[k];
             pArray[i][j] = temp;
             temp = 0.0;
             if(j > trainDataDayCount)
-                accArray[i][j] = pArray[i][j];
+                S[j] = pArray[i][j];
         }
         predictArray[i][1] = ceil(pArray[i][trainDataDayCount+predictDaysCount]-pArray[i][trainDataDayCount+1]);
     }
