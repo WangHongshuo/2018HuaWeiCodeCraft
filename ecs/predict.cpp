@@ -22,6 +22,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 {
     for(int i=1;i<16;i++)
     {
+        flavor[i].type = i;
         flavor[i].cpu = int(pow(2,(i-1)/3));
         flavor[i].mem = flavor[i].cpu*(int(pow(2,(((i-1)%3)))));
         flavor[i].delta = double(flavor[i].mem)/double(flavor[i].cpu);
@@ -789,14 +790,12 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     tryCount = 0;
                     minDiff = DBL_MAX;
                     isGetBestChioce = false;
+                    cout << "Get Bad Chioce!" << endl;
                     break;
                 }
                 else
                 {
-                    server[SERVER_COUNT].usedCPU += flavor[bestChoiceFlavor].cpu;
-                    server[SERVER_COUNT].usedMEM += flavor[bestChoiceFlavor].mem;
-                    server[SERVER_COUNT].flavorCount[bestChoiceFlavor]++;
-                    server[SERVER_COUNT].VMCount++;
+                    server[SERVER_COUNT].addFlavor(flavor[bestChoiceFlavor]);
                     tPredictArray[bestChoiceIndex][1]--;
                     tPredictVMCount--;
                     tryCount = 0;
@@ -876,14 +875,12 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     tryCount = 0;
                     minDiff = DBL_MAX;
                     isGetBestChioce = false;
+                    cout << "Get Bad Chioce!" << endl;
                     break;
                 }
                 else
                 {
-                    server[SERVER_COUNT].usedCPU += flavor[bestChoiceFlavor].cpu;
-                    server[SERVER_COUNT].usedMEM += flavor[bestChoiceFlavor].mem;
-                    server[SERVER_COUNT].flavorCount[bestChoiceFlavor]++;
-                    server[SERVER_COUNT].VMCount++;
+                    server[SERVER_COUNT].addFlavor(flavor[bestChoiceFlavor]);
                     tPredictArray[bestChoiceIndex][1]--;
                     tPredictVMCount--;
                     tryCount = 0;
@@ -928,7 +925,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
         }
 //        cout << maxCount << " " << flavorType << endl;
         // 如果每种flavor的数量较小，删除，否则尝试放满
-        if(maxCount < 3)
+        if(maxCount < 2)
         {
             for(int i=1;i<=MAX_FLAVOR_TYPE;i++)
             {
@@ -957,10 +954,7 @@ void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &p
                     }
                     else
                     {
-                        server[SERVER_COUNT].usedCPU += flavor[flavorType].cpu;
-                        server[SERVER_COUNT].usedMEM += flavor[flavorType].mem;
-                        server[SERVER_COUNT].flavorCount[flavorType]++;
-                        server[SERVER_COUNT].VMCount++;
+                        server[SERVER_COUNT].addFlavor(flavor[flavorType]);
                         predictArray[i][1]++;
                         predictVMCount++;
                     }

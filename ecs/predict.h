@@ -44,6 +44,15 @@ struct trainData
     trainData() {}
 };
 
+struct FLAVOR
+{
+    int type = 0;
+    int cpu = 0;
+    int mem = 0;
+    double delta = 0;
+    FLAVOR() {}
+};
+
 class phyServer
 {
 public:
@@ -67,17 +76,39 @@ public:
     {
         return double(usedMEM)/double(MAX_MEM);
     }
+    bool addFlavor(FLAVOR f)
+    {
+        if(usedCPU+f.cpu > MAX_CPU || usedMEM+f.mem > MAX_MEM)
+        {
+            return false;
+        }
+        else
+        {
+            usedCPU += f.cpu;
+            usedMEM += f.mem;
+            flavorCount[f.type] ++;
+            VMCount ++;
+            return true;
+        }
+    }
+    bool removeFlavor(FLAVOR f)
+    {
+        if(usedCPU-f.cpu < 0 || usedMEM-f.mem < 0)
+        {
+            return false;
+        }
+        else
+        {
+            usedCPU -= f.cpu;
+            usedMEM -= f.mem;
+            flavorCount[f.type] --;
+            VMCount --;
+            return true;
+        }
+    }
 private:
     int MAX_CPU;
     int MAX_MEM;
-};
-
-struct FLAVOR
-{
-    int cpu = 0;
-    int mem = 0;
-    double delta = 0;
-    FLAVOR() {}
 };
 
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
