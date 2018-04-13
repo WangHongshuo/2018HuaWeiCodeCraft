@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <float.h>
 #include <vector>
 #include <math.h>
 #include <string.h>
@@ -43,23 +44,80 @@ struct trainData
     trainData() {}
 };
 
-struct phyServer
+struct FLAVOR
 {
+    int type = 0;
+    int cpu = 0;
+    int mem = 0;
+    double delta = 0;
+    FLAVOR() {}
+};
+
+class phyServer
+{
+public:
+    phyServer(int maxCPU, int maxMEM)
+    {
+        MAX_CPU = maxCPU;
+        MAX_MEM = maxMEM;
+    }
+    ~phyServer() {}
     int usedCPU = 0;
     int usedMEM = 0;
     int flavorCount[16] = {0};
     int VMCount = 0;
     bool isFull = false;
-    phyServer() {}
+    bool isPerfectlyFull = false;
+    double getPercentageOfUsedCpu()
+    {
+        return double(usedCPU)/double(MAX_CPU);
+    }
+    double getPercentageOfUsedMem()
+    {
+        return double(usedMEM)/double(MAX_MEM);
+    }
+    bool addFlavor(FLAVOR f)
+    {
+        if(usedCPU+f.cpu > MAX_CPU || usedMEM+f.mem > MAX_MEM)
+        {
+            return false;
+        }
+        else
+        {
+            usedCPU += f.cpu;
+            usedMEM += f.mem;
+            flavorCount[f.type] ++;
+            VMCount ++;
+            return true;
+        }
+    }
+    bool removeFlavor(FLAVOR f)
+    {
+        if(usedCPU-f.cpu < 0 || usedMEM-f.mem < 0)
+        {
+            return false;
+        }
+        else
+        {
+            usedCPU -= f.cpu;
+            usedMEM -= f.mem;
+            flavorCount[f.type] --;
+            VMCount --;
+            return true;
+        }
+    }
+private:
+    int MAX_CPU;
+    int MAX_MEM;
 };
 
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
 void sortFlavorOrderByOptimizationTarget(phyServerInfo &target);
 void quickSortMinToMax(int left, int right, int * array);
-void quickSortMinToMax(int left, int right, int * array , int * index);
+void quickSortMinToMax(int left, int right, int *array , int * index);
 void quickSortMaxToMin(int left, int right, int * array);
-void quickSortMaxToMin(int left, int right, int * array , int * index);
+void quickSortMaxToMin(int left, int right, int *array , int * index);
 void loadTrainDataToVector(vector<trainData> &target, int daysCount, char * data[MAX_DATA_NUM], int dataLineCount, phyServerInfo &serverInfo);
 char * charToNum(char * str, int &target);
 void numToDate(int num, date &target);
