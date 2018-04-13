@@ -115,9 +115,9 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     linearModel(predictDataFlavorCount_4,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.5+
+        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.6+
                                             predictDataFlavorCount_2[i][1]*0.0+
-                                            predictDataFlavorCount_3[i][1]*0.2+
+                                            predictDataFlavorCount_3[i][1]*0.1+
                                             predictDataFlavorCount_4[i][1]*0.3);
         if(predictDataFlavorCount[i][1] < 0)
             predictDataFlavorCount[i][1] = 0;
@@ -1462,6 +1462,12 @@ void linearModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
         double alpha = 0.7;
         int it = 7000;
         double error = DBL_MAX;
+        double a = 0.8;
+        vector<double> S(accArray[1].size());
+        S.assign(S.size(),0.0);
+        S[1] = accArray[i][1];
+        for(int j=2;j<=trainDataDayCount;j++)
+            S[j] = a*accArray[i][j]+(1-a)*S[j-1];
         pArray[i].resize(1+trainDataDayCount+predictDaysCount);
         while(it)
         {
@@ -1472,14 +1478,14 @@ void linearModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
             for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
             {
                 for(int k=0;k<predictDaysCount;k++)
-                    temp += accArray[i][j-predictDaysCount+k]*window[k];
+                    temp += S[j-predictDaysCount+k]*window[k];
                 pArray[i][j] = temp;
                 temp = 0.0;
             }
             // 计算误差
             temp = 0.0;
             for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
-                temp += pow(accArray[i][j]-pArray[i][j],2);
+                temp += pow(S[j]-pArray[i][j],2);
             if(temp < error)
             {
                 error = temp;
@@ -1496,13 +1502,13 @@ void linearModel(double (&predictArray)[16][2], vector<trainData> &vTrainData, i
         for(int j=predictDaysCount+1;j<=trainDataDayCount+predictDaysCount;j++)
         {
             for(int k=0;k<predictDaysCount;k++)
-                temp += accArray[i][j-predictDaysCount+k]*window[k];
+                temp += S[j-predictDaysCount+k]*window[k];
             pArray[i][j] = temp;
             temp = 0.0;
             if(j > trainDataDayCount)
-                accArray[i][j] = pArray[i][j];
+                S[j] = pArray[i][j];
         }
-        predictArray[i][1] = (pArray[i][trainDataDayCount+predictDaysCount]-pArray[i][trainDataDayCount+1]);
+        predictArray[i][1] = ceil(pArray[i][trainDataDayCount+predictDaysCount]-pArray[i][trainDataDayCount+1]);
     }
 }
 
