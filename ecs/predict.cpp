@@ -111,9 +111,9 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     threeDESModel(predictDataFlavorCount_3,trainDataGroup,trainDataDayCount,predictDaysCount,serverInfo);
     for(int i=1;i<=serverInfo.flavorTypeCount;i++)
     {
-        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.5+
-                                            predictDataFlavorCount_2[i][1]*0.3+
-                                            predictDataFlavorCount_3[i][1]*0.2);
+        predictDataFlavorCount[i][1] = ceil(predictDataFlavorCount_1[i][1]*0.7+
+                                            predictDataFlavorCount_2[i][1]*0.0+
+                                            predictDataFlavorCount_3[i][1]*0.3);
         if(predictDataFlavorCount[i][1] < 0)
             predictDataFlavorCount[i][1] = 0;
     }
