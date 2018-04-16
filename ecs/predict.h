@@ -8,6 +8,9 @@
 #include <math.h>
 #include <string.h>
 #include <string>
+#include "DataLoader.h"
+#include "predictModel.h"
+#include "allocateModel.h"
 #include <float.h>
 #include "lib_io.h"
 
@@ -54,64 +57,6 @@ struct FLAVOR
     FLAVOR() {}
 };
 
-class phyServer
-{
-public:
-    phyServer(int maxCPU, int maxMEM)
-    {
-        MAX_CPU = maxCPU;
-        MAX_MEM = maxMEM;
-    }
-    ~phyServer() {}
-    int usedCPU = 0;
-    int usedMEM = 0;
-    int flavorCount[16] = {0};
-    int VMCount = 0;
-    bool isFull = false;
-    bool isPerfectlyFull = false;
-    double getPercentageOfUsedCpu()
-    {
-        return double(usedCPU)/double(MAX_CPU);
-    }
-    double getPercentageOfUsedMem()
-    {
-        return double(usedMEM)/double(MAX_MEM);
-    }
-    bool addFlavor(FLAVOR f)
-    {
-        if(usedCPU+f.cpu > MAX_CPU || usedMEM+f.mem > MAX_MEM)
-        {
-            return false;
-        }
-        else
-        {
-            usedCPU += f.cpu;
-            usedMEM += f.mem;
-            flavorCount[f.type] ++;
-            VMCount ++;
-            return true;
-        }
-    }
-    bool removeFlavor(FLAVOR f)
-    {
-        if(usedCPU-f.cpu < 0 || usedMEM-f.mem < 0)
-        {
-            return false;
-        }
-        else
-        {
-            usedCPU -= f.cpu;
-            usedMEM -= f.mem;
-            flavorCount[f.type] --;
-            VMCount --;
-            return true;
-        }
-    }
-private:
-    int MAX_CPU;
-    int MAX_MEM;
-};
-
 void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int data_num, char * filename);
 void loadInfo(char * info[MAX_INFO_NUM], phyServerInfo &target);
 void sortFlavorOrderByOptimizationTarget(phyServerInfo &target);
@@ -129,12 +74,5 @@ int getDaysCountInMonth(int Year, int Month);
 int getDaysCountInYear(int Year);
 bool isFlavorInPhyServerInfo(phyServerInfo &info, int flavorTpye);
 bool operator !=(date &a, date &b);
-double nD(double in, double sigma);
-
-void predictComplexModel(int (&predictArray)[16][2], vector<trainData> &vTrainData, int trainDataDayCount, int predictDaysCount, phyServerInfo &serverInfo);
-void predictSimpleModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
-void predictAverageModel(int (&predictArray)[16][2], int (&trainArray)[16][2], int flavorTypeCount, int trainDataDayCount, int predictDaysCount);
-
-void allocateModel(vector<phyServer> &server, int (&predictArray)[16][2], int &predictVMCount, phyServerInfo &serverInfo, int &predictPhyServerCount);
 
 #endif
