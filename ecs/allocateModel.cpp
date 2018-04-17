@@ -16,7 +16,7 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
             pServerCount[i] ++;
         }
     }
-    int flavorType = 0, flavorCount, bestChoiceFlavor, bestChoiceIndex,tryCount = 0;
+    int flavorCount, bestChoiceIndex,tryCount = 0;
     bool isRestart = false, isGetBestChioce = false;
     double tempDiff, minDiff = DBL_MAX;
 
@@ -25,7 +25,6 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
         minDiff = DBL_MAX;
         for(int i=MAX_FLAVOR_TYPE;i>0;i--)
         {
-            flavorType = tPredictArray[i][0];
             flavorCount = tPredictArray[i][1];
             tryCount ++;
             while(flavorCount)
@@ -57,7 +56,6 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
                     if(tempDiff <= minDiff)
                     {
                         minDiff = tempDiff;
-                        bestChoiceFlavor = flavorType;
                         bestChoiceIndex = i;
                         isGetBestChioce = true;
                     }

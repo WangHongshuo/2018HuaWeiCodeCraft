@@ -37,13 +37,12 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
 //    system("pause");
 
     // 可用参数：
-    // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~serverInfo.flavorTypeCount
+    // 数组形式的trainDataArray，int[i][0]为flavor类型，i取值为1~ecs.vFlavorTypeCount
     // int[i][1]~int[i][trainDataDayCount]为该flavor类型每个索引日期的数量
     // 训练数据天数trainDataDayCount，预测天数predictDaysCount
-    // 物理服务器信息serverInfo（flavor种类数量serverInfo.flavorTypeCount）
     //　输出参数：predictArray
     // predictArray[i][0]为flavor的类型，已经初始化
-    // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~serverInfo.flavorTypeCount
+    // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~ecs.vFlavorTypeCount
     // TODO
 
     // 线性累加
