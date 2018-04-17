@@ -21,12 +21,12 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
    twoDESModel(pArray_2,ecs);
    threeDESModel(pArray_3,ecs);
    linearModel(pArray_4,ecs);
-   for(int i=1;i<ecs.vFlavorTypeCount;i++)
+   for(int i=1;i<=ecs.vFlavorTypeCount;i++)
    {
-       predictArray[i][1] = int(ceil(pArray_1[i][1]*0.3+
+       predictArray[i][1] = int(ceil(pArray_1[i][1]*0.0+
                                      pArray_2[i][1]*0.0+
                                      pArray_3[i][1]*0.0+
-                                     pArray_4[i][1]*0.7));
+                                     pArray_4[i][1]*1.0));
        if(predictArray[i][1] < 0)
            predictArray[i][1] = 0;
    }
