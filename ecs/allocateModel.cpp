@@ -212,8 +212,8 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
                 {
                     predictArray[j][1] -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
                     predictVMCount -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
-                    pServerCount[i] -- ;
                 }
+                pServerCount[i] -- ;
                 break;
             }
 
