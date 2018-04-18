@@ -195,7 +195,44 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
 //    }
 //    cout << "=================" << endl;
 
+    int maxFlavorCount;
+    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    {
+        maxFlavorCount = 0;
+        if(pServerCount[i] > 2)
+        {
+            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+            {
+                if(pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type] > maxFlavorCount)
+                    maxFlavorCount = pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
+            }
+            if(maxFlavorCount < 2)
+            {
+                for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+                {
+                    predictArray[j][1] -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
+                    predictVMCount -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
+                    pServerCount[i] -- ;
+                }
+                break;
+            }
 
+            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+            {
+                if(pServer[i][pServerCount[i]].usedCPU+ecs.vFlavor[j].cpu > pServer[i][0].MAX_CPU ||
+                   pServer[i][pServerCount[i]].usedMEM+ecs.vFlavor[j].mem > pServer[i][0].MAX_MEM)
+                {
+                    continue;
+                }
+                else
+                {
+                    pServer[i][pServerCount[i]].addFlavor(ecs.vFlavor[j]);
+                    predictArray[j][1] ++;
+                    predictVMCount ++;
+                }
+            }
+        }
+    }
 
 //    cout << "After, the predict data count:  VM count: " << predictVMCount << endl;
 //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
