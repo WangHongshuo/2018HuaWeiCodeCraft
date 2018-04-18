@@ -2,7 +2,7 @@
 
 // 分配模型参数格式：物理服务器vector（方便扩充），预测结果数组，预测后的虚拟机总数，物理服务器信息参数，预测需要服务器数量
 //  predictArray[i][j]的i<MAX_FLAVOR_TYPE，server的index从1开始
-void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2], int &predictVMCount,const DataLoader &ecs, vector<int> &pServerCount)
+void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2], int &predictVMCount,const DataLoader &ecs, vector<int> &pServerCount)
 {
     int MAX_FLAVOR_TYPE = ecs.vFlavorTypeCount;
     int tPredictArray[19][2];
@@ -12,7 +12,7 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
     {
         for(int i=1;i<=ecs.pFlavorTypeCount;i++)
         {
-            server[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
+            pServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
             pServerCount[i] ++;
         }
     }
@@ -20,100 +20,169 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
     vector<vector<phyServer>> tmpServer(1+ecs.pFlavorTypeCount);
     vector<int> optPServerCount(1+ecs.pFlavorTypeCount);
     vector<int> tmpPServerCount(1+ecs.pFlavorTypeCount);
-    double maxUsage = -DBL_MAX, tepUsage;
+    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    {
+        tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
+        tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
+        tmpPServerCount[i] ++;
+    }
+
+    double maxUsage = -DBL_MAX, tmpUsage;
+    double vCpuCount = 0.0, vMemCount = 0.0;
+    double pCpuCount, pMemCount;
+    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+    {
+        vCpuCount += double(tPredictArray[i][1])*double(ecs.vFlavor[i].cpu);
+        vMemCount += double(tPredictArray[i][1])*double(ecs.vFlavor[i].mem);
+    }
+
     // 所有物理服务器组合
     vector<vector<int>> pFlavorGroup;
     vector<int> list(ecs.pFlavorTypeCount);
     for(int i=0;i<ecs.pFlavorTypeCount;i++)
         list[i] = i+1;
-    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    for(int i=1;i<=ecs.pFlavorTypeCount-2;i++)
     {
         combination(list,i,pFlavorGroup);
     }
-    int flavorCount, bestChoiceIndex,tryCount = 0;
+    int flavorCount, pServerType, bestChoiceIndex,bestChioceServer,tryCount = 0;
     bool isRestart = false, isGetBestChioce = false;
     double tempDiff, minDiff = DBL_MAX;
-
-    while(tPredictVMCount)
+    for(uint c=0;c<pFlavorGroup.size();c++)
     {
-        minDiff = DBL_MAX;
-        for(int i=MAX_FLAVOR_TYPE;i>0;i--)
+        while(tPredictVMCount)
         {
-            flavorCount = tPredictArray[i][1];
-            tryCount ++;
-            while(flavorCount)
+            for(uint s=0;s<pFlavorGroup[c].size();s++)
             {
-                if(server[1][pServerCount[1]].usedCPU+ecs.vFlavor[i].cpu > server[1][0].MAX_CPU ||
-                        server[1][pServerCount[1]].usedMEM+ecs.vFlavor[i].mem > server[1][0].MAX_MEM)
+                minDiff = DBL_MAX;
+                pServerType = pFlavorGroup[c][s];
+                for(int i=MAX_FLAVOR_TYPE;i>0;i--)
                 {
-                    if(tryCount >= MAX_FLAVOR_TYPE && tPredictVMCount > 0)
+                    flavorCount = tPredictArray[i][1];
+                    tryCount ++;
+                    while(flavorCount)
                     {
-                        server[1][pServerCount[1]].isFull = true;
-                        if(server[1][pServerCount[1]].getPercentageOfUsedCpu() > 0.95)
-                            server[1][pServerCount[1]].isPerfectlyFull = true;
-                        tryCount = 1;
-                        server[1].push_back(phyServer(ecs.pFlavor[1].cpu,ecs.pFlavor[1].mem));
-                        pServerCount[1] ++;
-                        isRestart = true;
+                        if(tmpServer[pServerType][tmpPServerCount[pServerType]].usedCPU+ecs.vFlavor[i].cpu > tmpServer[pServerType][0].MAX_CPU ||
+                           tmpServer[pServerType][tmpPServerCount[pServerType]].usedMEM+ecs.vFlavor[i].mem > tmpServer[pServerType][0].MAX_MEM)
+                        {
+                            if(tryCount >= MAX_FLAVOR_TYPE && tPredictVMCount > 0)
+                            {
+                                tmpServer[pServerType][tmpPServerCount[pServerType]].isFull = true;
+                                if(tmpServer[pServerType][tmpPServerCount[pServerType]].getPercentageOfUsedCpu() > 0.95)
+                                    tmpServer[pServerType][tmpPServerCount[pServerType]].isPerfectlyFull = true;
+                                tryCount = 1;
+                                tmpServer[pServerType].push_back(phyServer(ecs.pFlavor[pServerType].cpu,ecs.pFlavor[pServerType].mem));
+                                tmpPServerCount[pServerType] ++;
+                                isRestart = true;
+                                break;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            tmpServer[pServerType][tmpPServerCount[pServerType]].usedCPU += ecs.vFlavor[i].cpu;
+                            tmpServer[pServerType][tmpPServerCount[pServerType]].usedMEM += ecs.vFlavor[i].mem;
+                            tempDiff = fabs(tmpServer[pServerType][tmpPServerCount[pServerType]].getPercentageOfUsedCpu()-tmpServer[pServerType][tmpPServerCount[pServerType]].getPercentageOfUsedMem());
+                            if(tempDiff <= minDiff)
+                            {
+                                minDiff = tempDiff;
+                                bestChoiceIndex = i;
+                                bestChioceServer = pServerType;
+                                isGetBestChioce = true;
+                            }
+                            tmpServer[pServerType][tmpPServerCount[pServerType]].usedCPU -= ecs.vFlavor[i].cpu;
+                            tmpServer[pServerType][tmpPServerCount[pServerType]].usedMEM -= ecs.vFlavor[i].mem;
+                            break;
+                        }
+                    }
+                    if(isRestart)
+                    {
+                        isRestart = false;
                         break;
                     }
-                    else
-                    {
-                        break;
-                    }
+                }
+            }
+            if(isGetBestChioce)
+            {
+                if(tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].usedCPU + ecs.vFlavor[bestChoiceIndex].cpu > tmpServer[bestChioceServer][0].MAX_CPU ||
+                   tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].usedMEM + ecs.vFlavor[bestChoiceIndex].cpu > tmpServer[bestChioceServer][0].MAX_MEM )
+                {
+                    tryCount = 0;
+                    minDiff = DBL_MAX;
+                    isGetBestChioce = false;
+                    cout << "Get Bad Chioce!" << endl;
+                    break;
                 }
                 else
                 {
-                    server[1][pServerCount[1]].usedCPU += ecs.vFlavor[i].cpu;
-                    server[1][pServerCount[1]].usedMEM += ecs.vFlavor[i].mem;
-                    tempDiff = fabs(server[1][pServerCount[1]].getPercentageOfUsedCpu()-server[1][pServerCount[1]].getPercentageOfUsedMem());
-                    if(tempDiff <= minDiff)
-                    {
-                        minDiff = tempDiff;
-                        bestChoiceIndex = i;
-                        isGetBestChioce = true;
-                    }
-                    server[1][pServerCount[1]].usedCPU -= ecs.vFlavor[i].cpu;
-                    server[1][pServerCount[1]].usedMEM -= ecs.vFlavor[i].mem;
-                    break;
+                    tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].addFlavor(ecs.vFlavor[bestChoiceIndex]);
+                    tPredictArray[bestChoiceIndex][1]--;
+                    tPredictVMCount--;
+                    tryCount = 0;
+                    minDiff = DBL_MAX;
+                    isGetBestChioce = false;
                 }
-            }
-            if(isRestart)
-            {
-                isRestart = false;
-                break;
+//                cout << "Server[" << bestChioceServer << ", " << tmpPServerCount[bestChioceServer] << "] add Flavor[" << ecs.vFlavor[bestChoiceIndex].type << "]:" << endl;
+//                cout << "Flavor[" << ecs.vFlavor[bestChoiceIndex].type << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
+//                cout << "server[" << bestChioceServer << ", " << tmpPServerCount[bestChioceServer] << "] used CPU: " <<
+//                        server[bestChioceServer][tmpPServerCount[bestChioceServer]].usedCPU << " used MEM: " << tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].usedMEM
+//                        << " server is full = " << tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].isFull << endl;
+//                cout <<  "server[" << bestChioceServer << ", " << tmpPServerCount[bestChioceServer] << "] used CPU: " << tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].getPercentageOfUsedCpu()*100 << "%, " <<
+//                         "used MEM: " << tmpServer[bestChioceServer][tmpPServerCount[bestChioceServer]].getPercentageOfUsedMem()*100 << "%" << endl;
+//                cout << "=================" << endl;
+//                system("pause");
             }
         }
-        if(isGetBestChioce)
+        // 计算该方案的得分并保存和初始化变量
+        // 修正物理机数量
+        for(int i=1;i<=ecs.pFlavorTypeCount;i++)
         {
-            if(server[1][pServerCount[1]].usedCPU + ecs.vFlavor[bestChoiceIndex].cpu > server[1][0].MAX_CPU ||
-               server[1][pServerCount[1]].usedMEM + ecs.vFlavor[bestChoiceIndex].cpu > server[1][0].MAX_MEM )
+            if(tmpServer[i][tmpPServerCount[i]].VMCount == 0)
             {
-                tryCount = 0;
-                minDiff = DBL_MAX;
-                isGetBestChioce = false;
-                cout << "Get Bad Chioce!" << endl;
-                break;
+                tmpPServerCount[i] -- ;
             }
-            else
-            {
-                server[1][pServerCount[1]].addFlavor(ecs.vFlavor[bestChoiceIndex]);
-                tPredictArray[bestChoiceIndex][1]--;
-                tPredictVMCount--;
-                tryCount = 0;
-                minDiff = DBL_MAX;
-                isGetBestChioce = false;
-            }
-//            cout << "Server[" << pServerCount[1] << "] add Flavor[" << bestChoiceFlavor << "]:" << endl;
-//            cout << "Flavor[" << bestChoiceFlavor << "] count: " << tPredictArray[bestChoiceIndex][1] << endl;
-//            cout << "server[" << pServerCount[1] << "] used CPU: " <<
-//                    server[1][pServerCount[1]].usedCPU << " used MEM: " << server[1][pServerCount[1]].usedMEM
-//                 << " server is full = " << server[1][pServerCount[1]].isFull << endl;
-//            cout <<  "server[" << pServerCount[1] << "] used CPU: " << server[1][pServerCount[1]].getPercentageOfUsedCpu()*100 << "%, " <<
-//                     "used MEM: " << server[1][pServerCount[1]].getPercentageOfUsedMem()*100 << "%" << endl;
-//            cout << "=================" << endl;
-//            system("pause");
         }
+        // 计算得分
+        pCpuCount = pMemCount = 0;
+        for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+        {
+            pCpuCount += tmpPServerCount[i]*ecs.pFlavor[i].cpu;
+            pMemCount += tmpPServerCount[i]*ecs.pFlavor[i].mem;
+        }
+        tmpUsage = vCpuCount/pCpuCount+vMemCount/pMemCount;
+        // 保存最优
+        if(tmpUsage > maxUsage)
+        {
+            maxUsage = tmpUsage;
+            for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+            {
+                optPServerCount[i] = tmpPServerCount[i];
+                optServer[i] = tmpServer[i];
+            }
+        }
+        // 清理
+        tryCount = 0;
+        isRestart = false;
+        isGetBestChioce = false;
+        minDiff = DBL_MAX;
+        for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+        {
+            tmpPServerCount[i] = 1;
+            tmpServer[i].clear();
+            tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
+            tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
+        }
+        tPredictVMCount = predictVMCount;
+        memcpy(tPredictArray,predictArray,(19*2)*4);
+    }
+    // 将最优存放至输出
+    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    {
+        pServerCount[i] = optPServerCount[i];
+        pServer[i] = optServer[i];
     }
 
 //    cout << "Before, the predict data count:  VM count: " << predictVMCount << endl;
@@ -184,13 +253,7 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
 //    cout << "=================" << endl;
 
 //    predictPhyServerCount = SERVER_COUNT;
-    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
-    {
-        if(server[i][pServerCount[i]].VMCount == 0)
-        {
-            pServerCount[i] -- ;
-        }
-    }
+
     cout << "DONE!" << endl;
 }
 
