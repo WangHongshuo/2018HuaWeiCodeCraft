@@ -58,7 +58,9 @@ void DataLoader::loadInfo(char *info[MAX_INFO_NUM])
     numToTime(numTypeDateTime,predictEndTime);
     predictDaysCount = dateSub(predictEndDate,predictBeginDate);
     int seconds = timeSub(predictEndTime,predictBeginTime);
-    predictDaysCount = (int)round(double(predictDaysCount)+(double(seconds)/double(24*60*60)));
+    if(double(seconds)/double(24*60*60) > 0.5)
+        predictDaysCount += 1;
+
 }
 
 void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NUM], int dataLineCount)
@@ -67,7 +69,22 @@ void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NU
     target.resize(1+trainDataDaysCount);
     int daysIndex = 1, dataLineIndex = 0;
     int numTpyeDate, daysCountInMonth, flavorType;
+    Date tempDate;
     char * pCharTemp = NULL;
+    // 获取训练数据最后第一条的时间
+    pCharTemp = jumpToNextCharBlock(data[0]);
+    pCharTemp = jumpToNextCharBlock(pCharTemp);
+    pCharTemp = charToNum(pCharTemp,numTpyeDate);
+    numToDate(numTpyeDate,trainBeginDate);
+    pCharTemp = charToNum(pCharTemp,numTpyeDate);
+    numToTime(numTpyeDate,trainBeginTime);
+    trainBeginIndex = 1;
+    trainEndIndex = trainDataDaysCount;
+    predictBeginIndex = dateSub(predictBeginDate,trainBeginDate)+1;
+    if(trainBeginTime.hour > 12)
+        predictBeginIndex -= 1;
+    predictEndIndex = predictBeginIndex+predictDaysCount-1;
+
     // 初始化日期
     pCharTemp = jumpToNextCharBlock(data[0]);
     pCharTemp = jumpToNextCharBlock(pCharTemp);
@@ -98,7 +115,6 @@ void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NU
         daysIndex++;
     }
     // 从文本中读入数据
-    Date tempDate;
     daysIndex = 1;
     while (dataLineIndex < dataLineCount)
     {
@@ -207,6 +223,13 @@ int DataLoader::dateSub(const DataLoader::Date &to, const DataLoader::Date &from
     returnInterval -= from.D;
     returnInterval += to.D;
     return returnInterval;
+}
+
+void DataLoader::dateCopy(const DataLoader::Date &src, DataLoader::Date &dst)
+{
+    dst.Y = src.Y;
+    dst.M = src.M;
+    dst.D = src.D;
 }
 
 int DataLoader::timeSub(const DataLoader::Time &to, const DataLoader::Time &from)
