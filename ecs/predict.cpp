@@ -29,7 +29,7 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 //    cout << endl;
 //    for(int i=1;i<=ecs.trainDataDaysCount;i++)
 //    {
-//        cout << ecs.tData[i].time.Y << " " << ecs.tData[i].time.M << " " << ecs.tData[i].time.D << " ";
+//        cout << ecs.tData[i].date.Y << " " << ecs.tData[i].date.M << " " << ecs.tData[i].date.D << " ";
 //        for(int j=1;j<=ecs.vFlavorTypeCount;j++)
 //            cout << ecs.tData[i].flavorCount[ecs.vFlavor[j].type] << " ";
 //        cout << endl;
