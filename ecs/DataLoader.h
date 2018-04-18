@@ -73,6 +73,12 @@ public:
     Time predictBeginTime;
     Date predictEndDate;
     Time predictEndTime;
+    Date trainBeginDate;
+    Time trainBeginTime;
+    int trainBeginIndex = 0;
+    int trainEndIndex = 0;
+    int predictBeginIndex = 0;
+    int predictEndIndex = 0;
     int trainDataDaysCount = 0;
     void loadInfo(char *info[MAX_INFO_NUM]);
     void loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NUM], int dataLineCount);
@@ -82,6 +88,7 @@ public:
     void numToTime(int num, Time &target);
     char *jumpToNextCharBlock(char *str);
     int dateSub(const Date &to, const Date &from);
+    void dateCopy(const Date &src, Date &dst);
     int timeSub(const Time &to, const Time &from);
     int getDaysCountInYear(int Year);
     int getDaysCountInMonth(int Year, int Month);
