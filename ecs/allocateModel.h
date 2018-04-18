@@ -73,6 +73,10 @@ private:
 };
 
 void allocateModel(vector<vector<phyServer> > &server, int (&predictArray)[19][2], int &predictVMCount, const DataLoader &ecs, vector<int> &predictPhyServerCount );
-
+template<typename T>
+void combination(vector<T> &src, int pick, vector<vector<T>> &dst);
+int factorial(int start, int end);
+template<typename T>
+void toCombine(vector<T> &src, int pick, int count, vector<vector<T>> &dst, vector<T> &comb);
 
 #endif

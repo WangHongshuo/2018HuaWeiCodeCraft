@@ -16,6 +16,20 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
             pServerCount[i] ++;
         }
     }
+    vector<vector<phyServer>> optServer(1+ecs.pFlavorTypeCount);
+    vector<vector<phyServer>> tmpServer(1+ecs.pFlavorTypeCount);
+    vector<int> optPServerCount(1+ecs.pFlavorTypeCount);
+    vector<int> tmpPServerCount(1+ecs.pFlavorTypeCount);
+    double maxUsage = -DBL_MAX, tepUsage;
+    // 所有物理服务器组合
+    vector<vector<int>> pFlavorGroup;
+    vector<int> list(ecs.pFlavorTypeCount);
+    for(int i=0;i<ecs.pFlavorTypeCount;i++)
+        list[i] = i+1;
+    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    {
+        combination(list,i,pFlavorGroup);
+    }
     int flavorCount, bestChoiceIndex,tryCount = 0;
     bool isRestart = false, isGetBestChioce = false;
     double tempDiff, minDiff = DBL_MAX;
@@ -178,4 +192,35 @@ void allocateModel(vector<vector<phyServer>> &server, int (&predictArray)[19][2]
         }
     }
     cout << "DONE!" << endl;
+}
+
+template<typename T>
+void combination(vector<T> &src, int pick, vector<vector<T> > &dst)
+{
+    vector<T> comb;
+    toCombine(src,0,pick,dst,comb);
+}
+
+int factorial(int start, int end)
+{
+    int ans = 1;
+    for(int i=start;i<=end;i++)
+        ans *= i;
+    return ans;
+}
+
+template<typename T>
+void toCombine(vector<T> &src, int start, int pick, vector<vector<T> > &dst, vector<T> &comb)
+{
+    if(pick == 0)
+    {
+        dst.push_back(comb);
+        return;
+    }
+    for(int i=start;i<=int(src.size())-pick;++i)
+    {
+        comb.push_back(src[i]);
+        toCombine(src,i+1,pick-1,dst,comb);
+        comb.pop_back();
+    }
 }
