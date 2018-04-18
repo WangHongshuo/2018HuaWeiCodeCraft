@@ -47,12 +47,18 @@ void DataLoader::loadInfo(char *info[MAX_INFO_NUM])
         vFlavor[i] = vFLAVOR[temp];
     }
     // 预测的起始和终止日期
-    int numTypeDate;
-    pCharTemp = charToNum(info[4+pFlavorTypeCount+vFlavorTypeCount],numTypeDate);
-    numToDate(numTypeDate,predictStartTime);
-    pCharTemp = charToNum(info[5+pFlavorTypeCount+vFlavorTypeCount],numTypeDate);
-    numToDate(numTypeDate,predictEndTime);
-    predictDaysCount = dateSub(predictEndTime,predictStartTime);
+    int numTypeDateTime;
+    pCharTemp = charToNum(info[4+pFlavorTypeCount+vFlavorTypeCount],numTypeDateTime);
+    numToDate(numTypeDateTime,predictBeginDate);
+    pCharTemp = charToNum(pCharTemp,numTypeDateTime);
+    numToTime(numTypeDateTime,predictBeginTime);
+    pCharTemp = charToNum(info[5+pFlavorTypeCount+vFlavorTypeCount],numTypeDateTime);
+    numToDate(numTypeDateTime,predictEndDate);
+    pCharTemp = charToNum(pCharTemp,numTypeDateTime);
+    numToTime(numTypeDateTime,predictEndTime);
+    predictDaysCount = dateSub(predictEndDate,predictBeginDate);
+    int seconds = timeSub(predictEndTime,predictBeginTime);
+    predictDaysCount = (int)round(double(predictDaysCount)+(double(seconds)/double(24*60*60)));
 }
 
 void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NUM], int dataLineCount)
@@ -66,33 +72,33 @@ void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NU
     pCharTemp = jumpToNextCharBlock(data[0]);
     pCharTemp = jumpToNextCharBlock(pCharTemp);
     pCharTemp = charToNum(pCharTemp,numTpyeDate);
-    numToDate(numTpyeDate,target[daysIndex].time);
-    daysCountInMonth = getDaysCountInMonth(target[daysIndex].time.Y,target[daysIndex].time.M);
+    numToDate(numTpyeDate,target[daysIndex].date);
+    daysCountInMonth = getDaysCountInMonth(target[daysIndex].date.Y,target[daysIndex].date.M);
     daysIndex ++;
     while(daysIndex <= trainDataDaysCount)
     {
-        target[daysIndex].time.D = target[daysIndex-1].time.D+1;
-        target[daysIndex].time.M = target[daysIndex-1].time.M;
-        target[daysIndex].time.Y = target[daysIndex-1].time.Y;
-        if(target[daysIndex].time.D > daysCountInMonth)
+        target[daysIndex].date.D = target[daysIndex-1].date.D+1;
+        target[daysIndex].date.M = target[daysIndex-1].date.M;
+        target[daysIndex].date.Y = target[daysIndex-1].date.Y;
+        if(target[daysIndex].date.D > daysCountInMonth)
         {
-            target[daysIndex].time.D = 1;
-            target[daysIndex].time.M += 1;
-            if(target[daysIndex].time.M > 12)
+            target[daysIndex].date.D = 1;
+            target[daysIndex].date.M += 1;
+            if(target[daysIndex].date.M > 12)
             {
-                target[daysIndex].time.M = 1;
-                target[daysIndex].time.Y += 1;
-                daysCountInMonth = getDaysCountInMonth(target[daysIndex].time.Y,target[daysIndex].time.M);
+                target[daysIndex].date.M = 1;
+                target[daysIndex].date.Y += 1;
+                daysCountInMonth = getDaysCountInMonth(target[daysIndex].date.Y,target[daysIndex].date.M);
             }
             else
             {
-                daysCountInMonth = getDaysCountInMonth(target[daysIndex].time.Y,target[daysIndex].time.M);
+                daysCountInMonth = getDaysCountInMonth(target[daysIndex].date.Y,target[daysIndex].date.M);
             }
         }
         daysIndex++;
     }
     // 从文本中读入数据
-    date tempDate;
+    Date tempDate;
     daysIndex = 1;
     while (dataLineIndex < dataLineCount)
     {
@@ -102,7 +108,7 @@ void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NU
         {
             pCharTemp = charToNum(pCharTemp,numTpyeDate);
             numToDate(numTpyeDate,tempDate);
-            while(isTheSameDate(target[daysIndex].time,tempDate))
+            while(isTheSameDate(target[daysIndex].date,tempDate))
             {
                 daysIndex++;
             }
@@ -132,7 +138,7 @@ int DataLoader::getTrainDataInterval(char *data[MAX_DATA_NUM], int dataNum)
 {
     char * pCharTemp = NULL;
     int s, e, returnInterval;
-    date start, end;
+    Date start, end;
     pCharTemp = jumpToNextCharBlock(data[0]);
     pCharTemp = jumpToNextCharBlock(pCharTemp);
     pCharTemp = charToNum(pCharTemp,s);
@@ -145,7 +151,7 @@ int DataLoader::getTrainDataInterval(char *data[MAX_DATA_NUM], int dataNum)
     return returnInterval;
 }
 
-void DataLoader::numToDate(int num, date &target)
+void DataLoader::numToDate(int num, Date &target)
 {
     if(num > 0)
     {
@@ -154,6 +160,18 @@ void DataLoader::numToDate(int num, date &target)
         target.M = num/100;
         num = num%100;
         target.D = num;
+    }
+}
+
+void DataLoader::numToTime(int num, DataLoader::Time &target)
+{
+    if(num > 0)
+    {
+        target.hour = num/10000;
+        num = num%10000;
+        target.min = num/100;
+        num = num%100;
+        target.sec = num;
     }
 }
 
@@ -166,11 +184,11 @@ char *DataLoader::jumpToNextCharBlock(char *str)
     return ++str;
 }
 
-int DataLoader::dateSub(const DataLoader::date &to, const DataLoader::date &from)
+int DataLoader::dateSub(const DataLoader::Date &to, const DataLoader::Date &from)
 {
     int returnInterval = 0;
-    date tempFrom = from;
-    date tempTo = to;
+    Date tempFrom = from;
+    Date tempTo = to;
     while(tempFrom.Y <= to.Y)
     {
         returnInterval += getDaysCountInYear(tempFrom.Y);
@@ -188,6 +206,19 @@ int DataLoader::dateSub(const DataLoader::date &to, const DataLoader::date &from
     }
     returnInterval -= from.D;
     returnInterval += to.D;
+    return returnInterval;
+}
+
+int DataLoader::timeSub(const DataLoader::Time &to, const DataLoader::Time &from)
+{
+    int returnInterval;
+    int h, m, s;
+    h = to.hour-from.hour;
+    returnInterval = h*60*60;
+    m = to.min-from.min;
+    returnInterval += m*60;
+    s = to.sec-from.sec;
+    returnInterval += s;
     return returnInterval;
 }
 
@@ -221,7 +252,7 @@ bool DataLoader::isFlavorInPhyServerInfo(vector<vmFlavor> &info, int flavorTpye)
     return false;
 }
 
-bool DataLoader::isTheSameDate(const DataLoader::date &a, const DataLoader::date &b)
+bool DataLoader::isTheSameDate(const DataLoader::Date &a, const DataLoader::Date &b)
 {
     if(a.D != b.D)
         return true;
