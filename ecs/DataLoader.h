@@ -33,17 +33,25 @@ class DataLoader
         phyFlavor() {}
     };
 
-    struct date
+    struct Date
     {
         int Y = 0;
         int M = 0;
         int D = 0;
-        date() {}
+        Date() {}
+    };
+
+    struct Time
+    {
+        int hour = 0;
+        int min = 0;
+        int sec = 0;
+        Time() {}
     };
 
     struct trainData
     {
-        date time;
+        Date date;
         // 为方便，索引从1开始，0为无效数据
         int flavorCount[19] = {0};
         trainData() {}
@@ -61,20 +69,24 @@ public:
     int pFlavorTypeCount = 0;
     int vFlavorTypeCount = 0;
     int predictDaysCount = 0;
-    date predictStartTime;
-    date predictEndTime;
+    Date predictBeginDate;
+    Time predictBeginTime;
+    Date predictEndDate;
+    Time predictEndTime;
     int trainDataDaysCount = 0;
     void loadInfo(char *info[MAX_INFO_NUM]);
     void loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NUM], int dataLineCount);
     char *charToNum(char *str, int &target);
     int getTrainDataInterval(char * data[MAX_DATA_NUM], int dataNum);
-    void numToDate(int num, date &target);
+    void numToDate(int num, Date &target);
+    void numToTime(int num, Time &target);
     char *jumpToNextCharBlock(char *str);
-    int dateSub(const date &to, const date &from);
+    int dateSub(const Date &to, const Date &from);
+    int timeSub(const Time &to, const Time &from);
     int getDaysCountInYear(int Year);
     int getDaysCountInMonth(int Year, int Month);
     bool isFlavorInPhyServerInfo(vector<vmFlavor> &info, int flavorTpye);
-    bool isTheSameDate(const date &a, const date &b);
+    bool isTheSameDate(const Date &a, const Date &b);
 
 
 private:
