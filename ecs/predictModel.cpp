@@ -9,7 +9,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
     int predictDaysCount = ecs.predictDaysCount;
     vector<vector<int>> trainDataArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
-        trainDataArray[i].resize(1+trainDataDayCount+predictDaysCount);
+        trainDataArray[i].resize(1+ecs.predictEndIndex);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
     {
         trainDataArray[i][0] = ecs.vFlavor[i].type;
@@ -49,7 +49,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
     vector<vector<double>> accArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
     {
-        accArray[i].resize(1+trainDataDayCount+predictDaysCount);
+        accArray[i].resize(1+ecs.predictEndIndex);
         accArray[i][1] = trainDataArray[i][1];
         for(int j=2;j<=trainDataDayCount;j++)
             accArray[i][j] = accArray[i][j-1]+trainDataArray[i][j];
@@ -73,7 +73,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         S[1] = accArray[i][1];
         for(int j=2;j<=trainDataDayCount;j++)
             S[j] = a*accArray[i][j]+(1-a)*S[j-1];
-        pArray[i].resize(1+trainDataDayCount+predictDaysCount);
+        pArray[i].resize(1+ecs.predictEndIndex);
         while(it)
         {
             for(int j=0;j<predictDaysCount;j++)
@@ -104,7 +104,8 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
             it--;
         }
         // 预测
-        for(int j=predictDaysCount+1;j<=trainDataDayCount+predictDaysCount;j++)
+        temp = 0.0;
+        for(int j=predictDaysCount+1;j<=ecs.predictEndIndex;j++)
         {
             for(int k=0;k<predictDaysCount;k++)
                 temp += S[j-predictDaysCount+k]*window[k];
@@ -113,7 +114,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
             if(j > trainDataDayCount)
                 S[j] = pArray[i][j];
         }
-        predictArray[i][1] = ceil(pArray[i][trainDataDayCount+predictDaysCount]-pArray[i][trainDataDayCount+1]);
+        predictArray[i][1] = ceil(pArray[i][ecs.predictEndIndex]-pArray[i][ecs.trainEndIndex]);
     }
 }
 
