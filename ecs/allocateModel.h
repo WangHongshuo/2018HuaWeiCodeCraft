@@ -26,6 +26,14 @@ public:
     int VMCount = 0;
     bool isFull = false;
     bool isPerfectlyFull = false;
+    int unusedCPU()
+    {
+        return MAX_CPU-usedCPU;
+    }
+    int unusedMEM()
+    {
+        return MAX_MEM-usedMEM;
+    }
     void loadInfo(int _MAX_CPU, int _MAX_MEM)
     {
         MAX_CPU = _MAX_CPU;
