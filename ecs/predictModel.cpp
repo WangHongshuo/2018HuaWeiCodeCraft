@@ -3,28 +3,28 @@
 void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
 {
     // 输出数据到文件
-//    ofstream output("F:/MATLAB_project/HW/train.txt",ios_base::out);
-//    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
-//    {
-//        for(int j=1;j<=trainDataDaysCount+predictDaysCount;j++)
-//        {
-//            if(j <= trainDataDaysCount)
-//                output << vTrainData[j].flavorCount[serverInfo.flavorType[i]] << " ";
-//            else
-//                output << '0' << " ";
-//        }
-//        output << '\n';
-//    }
-//    int tempWeek = vTrainData[1].dayOfWeek;
-//    for(int j=1;j<=trainDataDaysCount+predictDaysCount;j++)
-//    {
-//        output << tempWeek << " ";
-//        tempWeek++;
-//        if(tempWeek > 7)
-//            tempWeek = 1;
-//    }
-//    output.close();
-//    system("pause");
+    ofstream output("F:/MATLAB_project/HW/train.txt",ios_base::out);
+    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+    {
+        for(int j=1;j<=ecs.predictEndIndex+ecs.predictDaysCount;j++)
+        {
+            if(j <= ecs.trainDataDaysCount)
+                output << ecs.tData[j].flavorCount[ecs.vFlavor[i].type] << " ";
+            else
+                output << '0' << " ";
+        }
+        output << '\n';
+    }
+    int tempWeek = ecs.tData[1].dayOfWeek;
+    for(int j=1;j<=ecs.predictEndIndex+ecs.predictDaysCount;j++)
+    {
+        output << tempWeek << " ";
+        tempWeek++;
+        if(tempWeek > 7)
+            tempWeek = 1;
+    }
+    output.close();
+    system("pause");
 
     int trainDataDaysCount = ecs.trainDataDaysCount;
     int predictDaysCount = ecs.predictDaysCount;
