@@ -12,7 +12,7 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
     double maxUsage = -DBL_MAX, tmpUsage;
     double vCpuCount = 0.0, vMemCount = 0.0;
     double pCpuCount, pMemCount;
-    int flavorCount, bestChoiceIndex,bestChioceServer,tryCount = 0;
+    int flavorCount, bestChoiceIndex,bestChioceServer = 0,tryCount = 0;
     bool isRestart = false, isGetBestChioce = false;
     double tempDiff, minDiff = DBL_MAX;
     phyServer optPserver(0,0);
@@ -122,17 +122,17 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
             minDiff = DBL_MAX;
             for(int i=1;i<=ecs.vFlavorTypeCount;i++)
             {
-                tPredictArray[i][1] += tmpPServer.flavorCount[i];
-                tPredictVMCount += tmpPServer.flavorCount[i];
+                tPredictArray[i][1] += tmpPServer.flavorCount[ecs.vFlavor[i].type];
             }
+            tPredictVMCount += tmpPServer.VMCount;
         }
         // 保存最优
         maxUsage = -DBL_MAX;
         for(int i=1;i<=ecs.vFlavorTypeCount;i++)
         {
-            tPredictArray[i][1] -= optPserver.flavorCount[i];
-            tPredictVMCount -= optPserver.flavorCount[i];
+            tPredictArray[i][1] -= optPserver.flavorCount[ecs.vFlavor[i].type];
         }
+        tPredictVMCount -= optPserver.VMCount;
         pServer[bestChioceServer].push_back(optPserver);
         pServerCount[bestChioceServer]++;
     }
@@ -145,44 +145,44 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
 //    }
 //    cout << "=================" << endl;
 
-//    int maxFlavorCount;
-//    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
-//    {
-//        maxFlavorCount = 0;
-//        if(pServerCount[i] > 2)
-//        {
-//            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
-//            {
-//                if(pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type] > maxFlavorCount)
-//                    maxFlavorCount = pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
-//            }
-//            if(maxFlavorCount < 2)
-//            {
-//                for(int j=1;j<=ecs.vFlavorTypeCount;j++)
-//                {
-//                    predictArray[j][1] -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
-//                    predictVMCount -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
-//                }
-//                pServerCount[i] -- ;
-//                break;
-//            }
+    int maxFlavorCount;
+    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    {
+        maxFlavorCount = 0;
+        if(pServerCount[i] > 2)
+        {
+            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+            {
+                if(pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type] > maxFlavorCount)
+                    maxFlavorCount = pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
+            }
+            if(maxFlavorCount < 2)
+            {
+                for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+                {
+                    predictArray[j][1] -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
+                    predictVMCount -= pServer[i][pServerCount[i]].flavorCount[ecs.vFlavor[j].type];
+                }
+                pServerCount[i] -- ;
+                break;
+            }
 
-//            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
-//            {
-//                if(pServer[i][pServerCount[i]].usedCPU+ecs.vFlavor[j].cpu > pServer[i][0].MAX_CPU ||
-//                   pServer[i][pServerCount[i]].usedMEM+ecs.vFlavor[j].mem > pServer[i][0].MAX_MEM)
-//                {
-//                    continue;
-//                }
-//                else
-//                {
-//                    pServer[i][pServerCount[i]].addFlavor(ecs.vFlavor[j]);
-//                    predictArray[j][1] ++;
-//                    predictVMCount ++;
-//                }
-//            }
-//        }
-//    }
+            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+            {
+                if(pServer[i][pServerCount[i]].usedCPU+ecs.vFlavor[j].cpu > pServer[i][0].MAX_CPU ||
+                   pServer[i][pServerCount[i]].usedMEM+ecs.vFlavor[j].mem > pServer[i][0].MAX_MEM)
+                {
+                    continue;
+                }
+                else
+                {
+                    pServer[i][pServerCount[i]].addFlavor(ecs.vFlavor[j]);
+                    predictArray[j][1] ++;
+                    predictVMCount ++;
+                }
+            }
+        }
+    }
 
 //    cout << "After, the predict data count:  VM count: " << predictVMCount << endl;
 //    for(int i=1;i<=serverInfo.flavorTypeCount;i++)
