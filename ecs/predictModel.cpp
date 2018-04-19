@@ -114,7 +114,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
             if(j > trainDataDayCount)
                 S[j] = pArray[i][j];
         }
-        predictArray[i][1] = ceil(pArray[i][ecs.predictEndIndex]-pArray[i][ecs.trainEndIndex]);
+        predictArray[i][1] = ceil((pArray[i][ecs.predictEndIndex]-pArray[i][ecs.trainEndIndex])/1.75);
     }
 }
 
