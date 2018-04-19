@@ -20,11 +20,13 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
     vector<vector<phyServer>> tmpServer(1+ecs.pFlavorTypeCount);
     vector<int> optPServerCount(1+ecs.pFlavorTypeCount);
     vector<int> tmpPServerCount(1+ecs.pFlavorTypeCount);
+    vector<bool> isApplyNewServer(1+ecs.pFlavorTypeCount);
     for(int i=1;i<=ecs.pFlavorTypeCount;i++)
     {
         tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
         tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
         tmpPServerCount[i] ++;
+        isApplyNewServer[i] = true;
     }
 
     double maxUsage = -DBL_MAX, tmpUsage;
@@ -45,7 +47,8 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
     {
         combination(list,i,pFlavorGroup);
     }
-    int flavorCount, pServerType, bestChoiceIndex,bestChioceServer,tryCount = 0;
+    int flavorCount, pServerType, tmpPserverType, bestChoiceIndex, bestChioceServer = 0, tryCount = 0;
+    int unallocatedCPU, unallocatedMEM, unusedCPUCount, unusedMEMCount, pFlavorGroupSize;
     bool isRestart = false, isGetBestChioce = false;
     double tempDiff, minDiff = DBL_MAX;
     for(uint c=0;c<pFlavorGroup.size();c++)
@@ -53,9 +56,12 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
         while(tPredictVMCount)
         {
             minDiff = DBL_MAX;
+            pFlavorGroupSize = pFlavorGroup[c].size();
             for(uint s=0;s<pFlavorGroup[c].size();s++)
             {
                 pServerType = pFlavorGroup[c][s];
+                if(!isApplyNewServer[pServerType])
+                    continue;
                 for(int i=MAX_FLAVOR_TYPE;i>0;i--)
                 {
                     flavorCount = tPredictArray[i][1];
@@ -68,11 +74,40 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
                             if(tryCount >= MAX_FLAVOR_TYPE && tPredictVMCount > 0)
                             {
                                 tmpServer[pServerType][tmpPServerCount[pServerType]].isFull = true;
-                                if(tmpServer[pServerType][tmpPServerCount[pServerType]].getPercentageOfUsedCpu() > 0.95)
+                                if(tmpServer[pServerType][tmpPServerCount[pServerType]].getPercentageOfUsedCpu() > 0.95 ||
+                                   tmpServer[pServerType][tmpPServerCount[pServerType]].getPercentageOfUsedMem() > 0.95)
+                                {
                                     tmpServer[pServerType][tmpPServerCount[pServerType]].isPerfectlyFull = true;
+                                }
                                 tryCount = 1;
-                                tmpServer[pServerType].push_back(phyServer(ecs.pFlavor[pServerType].cpu,ecs.pFlavor[pServerType].mem));
-                                tmpPServerCount[pServerType] ++;
+                                // 计算未分配的flavor和其余pServer可以提供的资源判断是否新开pServer
+                                unallocatedCPU = unallocatedMEM = unusedCPUCount = unusedMEMCount = 0;
+                                for(uint j=0;j<pFlavorGroup[c].size();j++)
+                                {
+                                    tmpPserverType = pFlavorGroup[c][j];
+                                    if(pFlavorGroupSize > 1)
+                                    {
+                                        if(pServerType == tmpPserverType || !isApplyNewServer[tmpPserverType])
+                                            continue;
+                                    }
+                                    unusedCPUCount += tmpServer[tmpPserverType][tmpPServerCount[tmpPserverType]].unusedCPU();
+                                    unusedMEMCount += tmpServer[tmpPserverType][tmpPServerCount[tmpPserverType]].unusedMEM();
+                                }
+                                for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+                                {
+                                    unallocatedCPU += tPredictArray[j][1]*ecs.vFlavor[j].cpu;
+                                    unallocatedMEM += tPredictArray[j][1]*ecs.vFlavor[j].mem;
+                                }
+                                if(unusedCPUCount >= unallocatedCPU && unusedMEMCount >= unallocatedMEM)
+                                {
+                                    isApplyNewServer[pServerType] = false;
+                                    pFlavorGroupSize --;
+                                }
+                                else
+                                {
+                                    tmpServer[pServerType].push_back(phyServer(ecs.pFlavor[pServerType].cpu,ecs.pFlavor[pServerType].mem));
+                                    tmpPServerCount[pServerType] ++;
+                                }
                                 isRestart = true;
                                 break;
                             }
@@ -173,6 +208,7 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
         for(int i=1;i<=ecs.pFlavorTypeCount;i++)
         {
             tmpPServerCount[i] = 1;
+            isApplyNewServer[i] = true;
             tmpServer[i].clear();
             tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
             tmpServer[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
