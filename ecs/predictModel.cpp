@@ -77,7 +77,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         while(it)
         {
             for(int j=0;j<predictDaysCount;j++)
-                window[j] = delta*nD(j,double(predictDaysCount)/4)*alpha;
+                window[j] = delta*nD(j,double(predictDaysCount)*1.7)*alpha;
             // 预测
             temp = 0.0;
             for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
@@ -114,7 +114,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
             if(j > trainDataDayCount)
                 S[j] = pArray[i][j];
         }
-        predictArray[i][1] = ceil((pArray[i][ecs.predictEndIndex]-pArray[i][ecs.trainEndIndex])/1.75);
+        predictArray[i][1] = ceil((pArray[i][ecs.predictEndIndex]-pArray[i][ecs.predictBeginIndex-1])*0.7);
     }
 }
 
