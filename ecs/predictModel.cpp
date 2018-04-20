@@ -67,7 +67,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         double alpha = 0.7;
         int it = 7000;
         double error = DBL_MAX;
-        double a = 0.8;
+        double a = 1.4;
         vector<double> S(accArray[1].size());
         S.assign(S.size(),0.0);
         S[1] = accArray[i][1];
