@@ -252,18 +252,46 @@ void allocateModel(vector<vector<phyServer>> &pServer, int (&predictArray)[19][2
                 pServerCount[i] -- ;
                 break;
             }
-
-            for(int j=1;j<=ecs.vFlavorTypeCount;j++)
+            while(!pServer[i][pServerCount[i]].isFull)
             {
-                if(pServer[i][pServerCount[i]].usedCPU+ecs.vFlavor[j].cpu > pServer[i][0].MAX_CPU ||
-                   pServer[i][pServerCount[i]].usedMEM+ecs.vFlavor[j].mem > pServer[i][0].MAX_MEM)
+                minDiff = DBL_MAX;
+                isGetBestChioce = false;
+                tryCount = 0;
+                for(int j=1;j<=ecs.vFlavorTypeCount;j++)
                 {
-                    continue;
+                    tryCount++;
+                    if(pServer[i][pServerCount[i]].usedCPU+ecs.vFlavor[j].cpu > pServer[i][0].MAX_CPU ||
+                       pServer[i][pServerCount[i]].usedMEM+ecs.vFlavor[j].mem > pServer[i][0].MAX_MEM)
+                    {
+                        if(tryCount >= MAX_FLAVOR_TYPE)
+                        {
+                            pServer[i][pServerCount[i]].isFull = true;
+                            break;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        pServer[i][pServerCount[i]].usedCPU += ecs.vFlavor[j].cpu;
+                        pServer[i][pServerCount[i]].usedMEM += ecs.vFlavor[j].mem;
+                        tempDiff = fabs(pServer[i][pServerCount[i]].getPercentageOfUsedCpu()-pServer[i][pServerCount[i]].getPercentageOfUsedMem());
+                        if(tempDiff <= minDiff)
+                        {
+                            minDiff = tempDiff;
+                            bestChoiceIndex = j;
+                            isGetBestChioce = true;
+                        }
+                        pServer[i][pServerCount[i]].usedCPU -= ecs.vFlavor[j].cpu;
+                        pServer[i][pServerCount[i]].usedMEM -= ecs.vFlavor[j].mem;
+                    }
                 }
-                else
+                if(isGetBestChioce)
                 {
-                    pServer[i][pServerCount[i]].addFlavor(ecs.vFlavor[j]);
-                    predictArray[j][1] ++;
+                    pServer[i][pServerCount[i]].addFlavor(ecs.vFlavor[bestChoiceIndex]);
+                    predictArray[bestChoiceIndex][1] ++;
                     predictVMCount ++;
                 }
             }
