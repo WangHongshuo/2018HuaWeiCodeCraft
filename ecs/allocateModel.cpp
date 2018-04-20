@@ -21,7 +21,7 @@ void allocateModel(vector<vector<phyServer> > &server, int (&predictArray)[19][2
     for(int i=1;i<=ecs.pFlavorTypeCount;i++)
     {
         tServer_1[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
-        tServer_1[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
+        tServer_2[i].push_back(phyServer(ecs.pFlavor[i].cpu,ecs.pFlavor[i].mem));
     }
     allocateModel_1(tServer_1,tPredictArray_1,tPredictVMCount_1,ecs,tPServerCount_1);
     allocateModel_2(tServer_2,tPredictArray_2,tPredictVMCount_2,ecs,tPServerCount_2);
@@ -53,7 +53,7 @@ void allocateModel(vector<vector<phyServer> > &server, int (&predictArray)[19][2
     if(usage_1 > usage_2)
     {
         server = tServer_1;
-        memcpy(predictArray,tPredictArray_2,(19*2)*4);
+        memcpy(predictArray,tPredictArray_1,(19*2)*4);
         predictVMCount = tPredictVMCount_1;
         predictPhyServerCount = tPServerCount_1;
 
