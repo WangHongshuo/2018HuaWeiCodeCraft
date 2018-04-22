@@ -54,7 +54,7 @@ public:
     void matTanhF(const vector<double> &vec, vector<double> &vecOutput);
     void matTanhB(const vector<double> &vec, vector<double> &vecOutput);
 
-    double getPredictData();
+    double getPredictData(int from, int to);
     void setRandomSeed(int seed);
     vector<vector<double>> x;
     vector<vector<double>> y;

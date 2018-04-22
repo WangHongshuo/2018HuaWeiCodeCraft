@@ -27,28 +27,53 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
 //    system("pause");
 
     int trainDataDaysCount = ecs.trainDataDaysCount;
-    int predictDaysCount = ecs.predictEndIndex-ecs.trainEndIndex;
+    int predictDaysCount = ecs.predictDaysCount;
+    int predictLength = ecs.predictEndIndex-ecs.trainEndIndex;
     vector<vector<int>> trainDataArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
-        trainDataArray[i].resize(1+trainDataDaysCount+predictDaysCount);
+        trainDataArray[i].resize(1+trainDataDaysCount+predictLength);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
     {
         trainDataArray[i][0] = ecs.vFlavor[i].type;
         for(int j=1;j<=trainDataDaysCount;j++)
             trainDataArray[i][j] = ecs.tData[j].flavorCount[ecs.vFlavor[i].type];
     }
+    // 3 sigma
+    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+    {
+        double tmpSum, tmpAvg, tmpSigma;
+        tmpSum = 0.0;
+        for(int j=1;j<=trainDataDaysCount;j++)
+        {
+            tmpSum += trainDataArray[i][j];
+        }
+        tmpAvg = tmpSum/double(trainDataDaysCount);
+        tmpSum = 0.0;
+        for(int j=1;j<=trainDataDaysCount;j++)
+        {
+            tmpSum += pow(double(trainDataArray[i][j])-tmpAvg,2);
+        }
+        tmpSigma = sqrt(tmpSum/double(trainDataDaysCount));
+        for(int j=1;j<=trainDataDaysCount;j++)
+        {
+           if(double(trainDataArray[i][j]) > tmpAvg+3*tmpSigma)
+           {
+               trainDataArray[i][j] /= 2;
+           }
+        }
+    }
 
     // 线性累加
     vector<vector<double>> accArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
     {
-        accArray[i].resize(1+trainDataDaysCount+predictDaysCount);
+        accArray[i].resize(1+trainDataDaysCount+predictLength);
         accArray[i][1] = trainDataArray[i][1];
         for(int j=2;j<=trainDataDaysCount;j++)
             accArray[i][j] = accArray[i][j-1]+trainDataArray[i][j];
     }
     // 组建训练数据,索引从0开始，x只需建立一次
-    int timeStep = predictDaysCount;
+    int timeStep = predictLength;
     vector<vector<double>> x(timeStep);
     for(uint i=0;i<x.size();i++)
         x[i].resize(accArray[1].size()-1);
@@ -57,18 +82,18 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         y[i].resize(accArray[1].size()-1);
     vector<double> S(accArray[1].size()-1);
 
-    GRU gru;
+     GRU gru;
     // 隐藏层，训练天数，预测天数
     int hDim = ceil(double(trainDataDaysCount)/double(2));
 
-    gru.setParameters(hDim,trainDataDaysCount,predictDaysCount,timeStep);
+    gru.setParameters(hDim,trainDataDaysCount,predictLength,timeStep);
     int seed = time(0);
     cout << "Seed: " << seed << endl;
     gru.setRandomSeed(seed);
     // 循环训练所有数据
 
     // alpha
-    double a = 0.6;
+    double a = 0.7;
     for(int h=1;h<=ecs.vFlavorTypeCount;h++)
     {
         S[0] = 0.0;
@@ -99,13 +124,13 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         }
 
         // x输入，y目标，步长，迭代次数，停止迭代的误差
-        gru.setData(x,y,0.02,2000,0.01);
+         gru.setData(x,y,0.01,3000,0.01);
         if(h == 1)
             gru.initCell();
         gru.initCellValue();
         gru.startTrainning();
 
-        predictArray[h][1] = ceil(gru.getPredictData()*0.9);
+        predictArray[h][1] = ceil(gru.getPredictData(ecs.predictBeginIndex-1,ecs.predictEndIndex));
         if(predictArray[h][1] < 0)
             predictArray[h][1] = 0;
     }

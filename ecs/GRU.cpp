@@ -451,16 +451,17 @@ void GRU::matTanhB(const vector<double> &vec, vector<double> &vecOutput)
     }
 }
 
-double GRU::getPredictData()
+double GRU::getPredictData(int from, int to)
 {
     double tempMax, tempMin;
-    tempMax = tempMin = yValue[uNum-tNum-pNum][0];
-    for(int i=1;i<pNum;i++)
+    int index = from-(to-from)-1;
+    tempMax = tempMin = yValue[index][0];
+    for(int i=1;i<to-from;i++)
     {
-        if(tempMax < yValue[uNum-tNum-pNum+i][0])
-            tempMax = yValue[uNum-tNum-pNum+i][0];
-        if(tempMin > yValue[uNum-tNum-pNum+i][0])
-            tempMin = yValue[uNum-tNum-pNum+i][0];
+        if(tempMax < yValue[index+i][0])
+            tempMax = yValue[index+i][0];
+        if(tempMin > yValue[index+i][0])
+            tempMin = yValue[index+i][0];
     }
     double p = tempMax-tempMin;
     p = p*(y_MAX-y_MIN)/y_SCALE;
