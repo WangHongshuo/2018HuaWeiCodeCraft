@@ -114,7 +114,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         }
         double a = 2*S1[i][packedArrayLength-predictDaysCount]-S2[i][packedArrayLength-predictDaysCount];
         double b = alpha/(1-alpha)*(S1[i][packedArrayLength-predictDaysCount]-S2[i][packedArrayLength-predictDaysCount]);
-        packedArray[i][packedArrayLength] = a+b*predictDaysCount;
+        packedArray[i][packedArrayLength] = a+b*(ecs.predictEndIndex-ecs.trainEndIndex);
     }
     // 输出用例（输出全部可输出数据）：
 //    cout << "S1[i] Array:" << endl;
