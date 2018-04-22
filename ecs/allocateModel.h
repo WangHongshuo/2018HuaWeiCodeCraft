@@ -22,7 +22,7 @@ public:
     int usedMEM = 0;
     int MAX_CPU = 0;
     int MAX_MEM = 0;
-    int flavorCount[16] = {0};
+    int flavorCount[19] = {0};
     int VMCount = 0;
     bool isFull = false;
     bool isPerfectlyFull = false;
@@ -81,6 +81,8 @@ private:
 };
 
 void allocateModel(vector<vector<phyServer> > &server, int (&predictArray)[19][2], int &predictVMCount, const DataLoader &ecs, vector<int> &predictPhyServerCount );
+void allocateModel_1(vector<vector<phyServer> > &server, int (&predictArray)[19][2], int &predictVMCount, const DataLoader &ecs, vector<int> &predictPhyServerCount );
+void allocateModel_2(vector<vector<phyServer> > &server, int (&predictArray)[19][2], int &predictVMCount, const DataLoader &ecs, vector<int> &predictPhyServerCount );
 template<typename T>
 void combination(vector<T> &src, int pick, vector<vector<T>> &dst);
 int factorial(int start, int end);

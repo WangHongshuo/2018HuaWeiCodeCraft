@@ -3,31 +3,31 @@
 void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
 {
     // 输出数据到文件
-    ofstream output("F:/MATLAB_project/HW/train.txt",ios_base::out);
-    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
-    {
-        for(int j=1;j<=ecs.predictEndIndex+ecs.predictDaysCount;j++)
-        {
-            if(j <= ecs.trainDataDaysCount)
-                output << ecs.tData[j].flavorCount[ecs.vFlavor[i].type] << " ";
-            else
-                output << '0' << " ";
-        }
-        output << '\n';
-    }
-    int tempWeek = ecs.tData[1].dayOfWeek;
-    for(int j=1;j<=ecs.predictEndIndex+ecs.predictDaysCount;j++)
-    {
-        output << tempWeek << " ";
-        tempWeek++;
-        if(tempWeek > 7)
-            tempWeek = 1;
-    }
-    output.close();
-    system("pause");
+//    ofstream output("F:/MATLAB_project/HW/train.txt",ios_base::out);
+//    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+//    {
+//        for(int j=1;j<=ecs.predictEndIndex+ecs.predictDaysCount;j++)
+//        {
+//            if(j <= ecs.trainDataDaysCount)
+//                output << ecs.tData[j].flavorCount[ecs.vFlavor[i].type] << " ";
+//            else
+//                output << '0' << " ";
+//        }
+//        output << '\n';
+//    }
+//    int tempWeek = ecs.tData[1].dayOfWeek;
+//    for(int j=1;j<=ecs.predictEndIndex+ecs.predictDaysCount;j++)
+//    {
+//        output << tempWeek << " ";
+//        tempWeek++;
+//        if(tempWeek > 7)
+//            tempWeek = 1;
+//    }
+//    output.close();
+//    system("pause");
 
     int trainDataDaysCount = ecs.trainDataDaysCount;
-    int predictDaysCount = ecs.predictDaysCount;
+    int predictDaysCount = ecs.predictEndIndex-ecs.trainEndIndex;
     vector<vector<int>> trainDataArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
         trainDataArray[i].resize(1+trainDataDaysCount+predictDaysCount);
@@ -110,17 +110,17 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
             predictArray[h][1] = 0;
     }
     // 计算预测准确度
-//    vector<int> realData = {0,19,20,2,10,32,8,3,45,14,0,8,8,11,2,2};
-//    double temp1 = 0.0,temp2 = 0.0, temp3 = 0.0;
-//    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
-//    {
-//        temp1 += pow(double(predictArray[i][1]-realData[i]),2);
-//        temp2 += pow(double(realData[i]),2);
-//        temp3 += pow(double(predictArray[i][1]),2);
-//    }
-//    temp1 = sqrt(temp1/ecs.vFlavorTypeCount);
-//    temp2 = sqrt(temp2/ecs.vFlavorTypeCount);
-//    temp3 = sqrt(temp3/ecs.vFlavorTypeCount);
-//    double accuracy = (1-temp1/(temp2+temp3));
-//    cout << "Accurcy: " << accuracy << endl;
+    vector<int> realData = {0,21,40,1,12,29,2,1,33,8,1,10,11,0,5,0,1,4,0};
+    double temp1 = 0.0,temp2 = 0.0, temp3 = 0.0;
+    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+    {
+        temp1 += pow(double(predictArray[i][1]-realData[i]),2);
+        temp2 += pow(double(realData[i]),2);
+        temp3 += pow(double(predictArray[i][1]),2);
+    }
+    temp1 = sqrt(temp1/ecs.vFlavorTypeCount);
+    temp2 = sqrt(temp2/ecs.vFlavorTypeCount);
+    temp3 = sqrt(temp3/ecs.vFlavorTypeCount);
+    double accuracy = (1-temp1/(temp2+temp3));
+    cout << "Accurcy: " << accuracy << endl;
 }
