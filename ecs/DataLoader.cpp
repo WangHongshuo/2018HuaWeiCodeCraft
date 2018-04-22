@@ -84,12 +84,12 @@ void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NU
     if(trainBeginTime.hour > 12)
         predictBeginIndex -= 1;
     predictEndIndex = predictBeginIndex+predictDaysCount-1;
-
     // 初始化日期
     pCharTemp = jumpToNextCharBlock(data[0]);
     pCharTemp = jumpToNextCharBlock(pCharTemp);
     pCharTemp = charToNum(pCharTemp,numTpyeDate);
     numToDate(numTpyeDate,target[daysIndex].date);
+    target[daysIndex].dayOfWeek = getDayOfTheWeek(target[daysIndex].date);
     daysCountInMonth = getDaysCountInMonth(target[daysIndex].date.Y,target[daysIndex].date.M);
     daysIndex ++;
     while(daysIndex <= trainDataDaysCount)
@@ -112,6 +112,9 @@ void DataLoader::loadTrainData(vector<trainData> &target, char *data[MAX_DATA_NU
                 daysCountInMonth = getDaysCountInMonth(target[daysIndex].date.Y,target[daysIndex].date.M);
             }
         }
+        target[daysIndex].dayOfWeek = target[daysIndex-1].dayOfWeek+1;
+        if(target[daysIndex].dayOfWeek > 7)
+            target[daysIndex].dayOfWeek = 1;
         daysIndex++;
     }
     // 从文本中读入数据
@@ -263,6 +266,21 @@ int DataLoader::getDaysCountInMonth(int Year, int Month)
             return 28;
     }
     return DAYS[Month];
+}
+
+int DataLoader::getDayOfTheWeek(const Date &target)
+{
+    // 2015.01.01  4
+    Date basedDay;
+    basedDay.Y = 2015;
+    basedDay.M = 1;
+    basedDay.D = 1;
+    int temp = dateSub(target,basedDay);
+    temp = (4+temp%7)%7;
+    if(temp > 0)
+        return temp;
+    else
+        return temp+7;
 }
 
 bool DataLoader::isFlavorInPhyServerInfo(vector<vmFlavor> &info, int flavorTpye)

@@ -54,6 +54,7 @@ class DataLoader
         Date date;
         // 为方便，索引从1开始，0为无效数据
         int flavorCount[19] = {0};
+        int dayOfWeek = 0;
         trainData() {}
     };
 
@@ -92,6 +93,7 @@ public:
     int timeSub(const Time &to, const Time &from);
     int getDaysCountInYear(int Year);
     int getDaysCountInMonth(int Year, int Month);
+    int getDayOfTheWeek(const Date &target);
     bool isFlavorInPhyServerInfo(vector<vmFlavor> &info, int flavorTpye);
     bool isTheSameDate(const Date &a, const Date &b);
 

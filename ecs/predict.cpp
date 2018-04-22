@@ -78,6 +78,11 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
 
     // 复杂预测模型：预测每种flavor数量的数组，训练数据vector，训练数据的天数，预测的天数，物理服务器信息
     predictModel(predictDataFlavorCount,ecs);
+    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+    {
+        if(predictDataFlavorCount[i][1] < 0)
+            predictDataFlavorCount[i][1] = 0;
+    }
 
     // 计算虚拟机总数
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
@@ -167,8 +172,8 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
         strOutput += '\n';
     }
     // 输出用例（输出全部可输出数据）：
-    cout << "Test output: " << endl;
-    cout << strOutput;
+//    cout << "Test output: " << endl;
+//    cout << strOutput;
 
 	// 需要输出的内容
     const char * result_file = strOutput.data();
