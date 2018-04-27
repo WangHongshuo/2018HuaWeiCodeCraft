@@ -45,23 +45,6 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
     // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~ecs.vFlavorTypeCount
     // TODO
 
-    // 3 sigma
-    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
-    {
-        double tmpSum, tmpAvg, tmpSigma;
-        tmpSum = 0.0;
-        for(int j=1;j<=ecs.trainDataDaysCount;j++)
-            tmpSum += trainDataArray[i][j];
-        tmpAvg = tmpSum/double(trainDataDayCount);
-        tmpSum = 0.0;
-        for(int j=1;j<=ecs.trainDataDaysCount;j++)
-            tmpSum += pow(double(trainDataArray[i][j])-tmpAvg,2);
-        tmpSigma = sqrt(tmpSum/double(trainDataDayCount));
-        for(int j=1;j<=ecs.trainDataDaysCount;j++)
-            if(double(trainDataArray[i][j] > tmpAvg+3*tmpSigma))
-                trainDataArray[i][j] = ceil(tmpAvg);
-    }
-
     // 线性累加
     vector<vector<double>> accArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
@@ -90,11 +73,11 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         for(int j=1;j<=ecs.trainDataDaysCount;j++)
             tmpSum += pow(double(trainDataArray[i][j])-tmpAvg,2);
         tmpSigma = sqrt(tmpSum/double(trainDataDayCount));
-
+        cout << tmpSigma << endl;
         double alpha = 0.7;
         int it = 7000;
         double error = DBL_MAX;
-        double a = 1.4;
+        double a = 1.9;
         vector<double> S(accArray[1].size());
         S.assign(S.size(),0.0);
         S[1] = accArray[i][1];
@@ -104,7 +87,7 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
         while(it)
         {
             for(int j=0;j<predictDaysCount;j++)
-                window[j] = delta*nD(j,double(predictDaysCount)*1.7)*alpha;
+                window[j] = delta*nD(j,double(predictDaysCount)*(1.7))*alpha;
             // 预测
             temp = 0.0;
             for(int j=predictDaysCount+1;j<=trainDataDayCount;j++)
@@ -142,6 +125,13 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
                 S[j] = pArray[i][j];
         }
         predictArray[i][1] = ceil((pArray[i][ecs.predictEndIndex]-pArray[i][ecs.predictBeginIndex-1])*0.7);
+
+        int trainDataSum = 0;
+        for(int j=1;j<ecs.trainDataDaysCount;j++)
+            trainDataSum += trainDataArray[i][j];
+        if(predictArray[i][1] >= 100 && predictArray[i][1] > trainDataSum)
+            predictArray[i][1] = ceil(double(trainDataSum)*0.9);
+
     }
     // 计算预测准确度
 //    vector<int> realData = {0,21,40,1,12,29,2,1,33,8,1,10,11,0,5,0,1,4,0}; // ori group
