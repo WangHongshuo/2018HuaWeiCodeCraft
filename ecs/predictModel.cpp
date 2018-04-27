@@ -135,7 +135,10 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
             predictArray[h][1] = 0;
     }
     // 计算预测准确度
-    vector<int> realData = {0,21,40,1,12,29,2,1,33,8,1,10,11,0,5,0,1,4,0};
+//    vector<int> realData = {0,21,40,1,12,29,2,1,33,8,1,10,11,0,5,0,1,4,0}; // ori group
+//    vector<int> realData = {0,3,1,4,1,31,9,6,69,16,1,9,0,0,23,3,0,1,0}; // 1-3 group
+//    vector<int> realData = {0,6,14,9,1,82,37,8,80,18,1,15,21,5,0,1,0,0,0}; // 3-5 group
+    vector<int> realData = {0,18,36,7,9,36,22,15,152,32,4,28,36,0,13,6,0,3,0}; // 6-8 group
     double temp1 = 0.0,temp2 = 0.0, temp3 = 0.0;
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
     {
