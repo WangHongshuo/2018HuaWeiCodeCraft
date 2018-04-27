@@ -109,30 +109,31 @@ void predict_server(char * info[MAX_INFO_NUM], char * data[MAX_DATA_NUM], int da
     }
     allocateModel(server,predictDataFlavorCount,predictVMCount,ecs,pServerCount);
     // 输出用例（输出全部可输出数据）：
-//    int tempCPU = 0, tempMEM = 0, sumCPU = 0, sumMEM = 0 ;
-//    cout << "predicted phy server count: " << endl;
-//    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
-//    {
-//        cout << ecs.pFlavor[i].name << ": " << pServerCount[i] << endl;
-//        for(int j=1;j<=pServerCount[i];j++)
-//        {
+    int tempCPU = 0, tempMEM = 0, sumCPU = 0, sumMEM = 0 ;
+    cout << "predicted phy server count: " << endl;
+    for(int i=1;i<=ecs.pFlavorTypeCount;i++)
+    {
+        cout << ecs.pFlavor[i].name << ": " << pServerCount[i] << endl;
+        for(int j=1;j<=pServerCount[i];j++)
+        {
 //            cout << "Server " << j << " : " << "CPU: " << server[i][j].usedCPU << "/" << ecs.pFlavor[i].cpu
 //                 << ", MEM: " << server[i][j].usedMEM << "/" << ecs.pFlavor[i].mem  << " IsPerfectlyFull: "
 //                 << server[i][j].isPerfectlyFull << endl;
-//            tempCPU += server[i][j].usedCPU;
-//            tempMEM += server[i][j].usedMEM;
-//            sumCPU += ecs.pFlavor[i].cpu;
-//            sumMEM += ecs.pFlavor[i].mem;
+            tempCPU += server[i][j].usedCPU;
+            tempMEM += server[i][j].usedMEM;
+            sumCPU += ecs.pFlavor[i].cpu;
+            sumMEM += ecs.pFlavor[i].mem;
 //            for(int k=1;k<=ecs.vFlavorTypeCount;k++)
 //            {
 //                cout << "Flavor" << ecs.vFlavor[k].type << " " << server[i][j].flavorCount[ecs.vFlavor[k].type] << endl;
 //            }
 //            cout << endl;
-//        }
-//    }
-//    cout << "Percentage of CPU Usage: " << double(tempCPU)/double(sumCPU) << endl;
-//    cout << "Percentage of MEM Usage: " << double(tempMEM)/double(sumMEM) << endl;
-//    cout << "=================" << endl;
+        }
+    }
+    cout << "Percentage of CPU Usage: " << double(tempCPU)/double(sumCPU) << endl;
+    cout << "Percentage of MEM Usage: " << double(tempMEM)/double(sumMEM) << endl;
+    cout << "Scores: " << (double(tempCPU)/double(sumCPU)+double(tempMEM)/double(sumMEM))/2.0 << endl;
+    cout << "=================" << endl;
 
     // ======================================================================
 
