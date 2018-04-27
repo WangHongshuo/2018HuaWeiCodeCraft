@@ -45,6 +45,23 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
     // predictArray[i][1]为该类型的数量，需要输入，i的取值为1~ecs.vFlavorTypeCount
     // TODO
 
+    // 3 sigma
+    for(int i=1;i<=ecs.vFlavorTypeCount;i++)
+    {
+        double tmpSum, tmpAvg, tmpSigma;
+        tmpSum = 0.0;
+        for(int j=1;j<=ecs.trainDataDaysCount;j++)
+            tmpSum += trainDataArray[i][j];
+        tmpAvg = tmpSum/double(trainDataDayCount);
+        tmpSum = 0.0;
+        for(int j=1;j<=ecs.trainDataDaysCount;j++)
+            tmpSum += pow(double(trainDataArray[i][j])-tmpAvg,2);
+        tmpSigma = sqrt(tmpSum/double(trainDataDayCount));
+        for(int j=1;j<=ecs.trainDataDaysCount;j++)
+            if(double(trainDataArray[i][j] > tmpAvg+3*tmpSigma))
+                trainDataArray[i][j] = ceil(tmpAvg);
+    }
+
     // 线性累加
     vector<vector<double>> accArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
@@ -64,6 +81,16 @@ void predictModel(int (&predictArray)[19][2], const DataLoader &ecs)
     vector<vector<double>> pArray(1+ecs.vFlavorTypeCount);
     for(int i=1;i<=ecs.vFlavorTypeCount;i++)
     {
+        double tmpSum, tmpAvg, tmpSigma;
+        tmpSum = 0.0;
+        for(int j=1;j<=ecs.trainDataDaysCount;j++)
+            tmpSum += trainDataArray[i][j];
+        tmpAvg = tmpSum/double(trainDataDayCount);
+        tmpSum = 0.0;
+        for(int j=1;j<=ecs.trainDataDaysCount;j++)
+            tmpSum += pow(double(trainDataArray[i][j])-tmpAvg,2);
+        tmpSigma = sqrt(tmpSum/double(trainDataDayCount));
+
         double alpha = 0.7;
         int it = 7000;
         double error = DBL_MAX;
